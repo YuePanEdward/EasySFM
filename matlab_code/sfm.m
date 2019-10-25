@@ -76,8 +76,6 @@ end
 
 
 
-
-
 % Find most significant tracks, those which are longer
 % HINT: You need to create a structure called "tracks" (matrix), where each ROW
 % represents a track, and each column will represent an image.
