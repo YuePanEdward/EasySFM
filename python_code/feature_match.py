@@ -42,13 +42,13 @@ def pairwise_match(img1,img2,feature_type,match_strategy,hessian_threshold=800,n
     print('Get',len(matches),'correspondences using',match_strategy,'matching strategy')
 
     # Show the result
-    img_kp_1 = cv2.drawKeypoints(img1, kps1, None, (0, 0, 255), 4)
-    img_kp_2 = cv2.drawKeypoints(img2, kps2, None, (255, 0, 0), 4)
-
-    cv2.imshow("Image 1", img_kp_1)
-    cv2.imshow("Image 2", img_kp_2)
-    cv2.imshow("Matching result", matching_result)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    # img_kp_1 = cv2.drawKeypoints(img1, kps1, None, (0, 0, 255), 4)
+    # img_kp_2 = cv2.drawKeypoints(img2, kps2, None, (255, 0, 0), 4)
+    #
+    # cv2.imshow("Image 1", img_kp_1)
+    # cv2.imshow("Image 2", img_kp_2)
+    # cv2.imshow("Matching result", matching_result)
+    # cv2.waitKey(0)
+    # cv2.destroyAllWindows()
 
     return matches
