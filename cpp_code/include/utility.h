@@ -1,3 +1,6 @@
+#ifndef _INCLUDE_UTILITY_H_
+#define _INCLUDE_UTILITY_H_
+
 //OpenCV
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
@@ -28,7 +31,7 @@ struct pose_3d_t
         this->copyFrom(pose);
     }
     pose_3d_t(Eigen::Quaterniond qua,
-               Eigen::Vector3d trans) : trans(trans), qua(qua)
+              Eigen::Vector3d trans) : trans(trans), qua(qua)
     {
         qua.normalize();
     }
@@ -86,27 +89,59 @@ struct frame_t
 {
     unsigned int frame_id;
     std::string image_file_path;
-    
+
     cv::Mat rgb_image;
     cv::Mat gray_image;
     cv::Mat semantic_seg_image;
-    
+
     std::vector<cv::KeyPoint> keypoints;
     cv::Mat descriptors;
 
-    pose_3d_t pose_cam;                                          // extrinsic elements of the camera
-    Eigen::Matrix3d K_cam;                                       // intrinsic elements of the camera
-    Eigen::Matrix4d P_cam;                                       // projection matrix of the camera
+    pose_3d_t pose_cam;    // extrinsic elements of the camera
+    Eigen::Matrix3d K_cam; // intrinsic elements of the camera
+    Eigen::Matrix4d P_cam; // projection matrix of the camera
+
+    frame_t(unsigned int id, std::string &image_path)
+    {
+        frame_id = id;
+        image_file_path = image_path;
+    }
+};
+
+struct frame_pair_t
+{
+    unsigned int frame_id_1;
+    unsigned int frame_id_2;
     
+    std::vector<cv::DMatch> matches;
+    
+    std::vector<cv::DMatch> best_matches;
+
+    pose_3d_t T_21;  
+
+
+};
+
+struct frame_graph_t
+{
+     std::vector<std::vector<frame_pair_t>> frame_graph;
+     
+     frame_graph_t(unsigned int frame_num)
+     {
+         frame_graph.resize(frame_num);
+         for (int i=0;i++;i<frame_num)
+         {
+             frame_graph[i].resize(frame_num);
+         }
+     }
+
 };
 
 struct pointcloud_sparse_t
-{  
-     pcl::PointCloud<pcl::PointXYZRGB>::Ptr rgb_pointcloud;
-
+{
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr rgb_pointcloud;
 };
 
-
-
-
 } // namespace p3dv
+
+#endif
