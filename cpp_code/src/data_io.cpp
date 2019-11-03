@@ -9,7 +9,7 @@
 
 using namespace p3dv;
 
-bool IO::ImportImages(frame_t &cur_frame, bool show)
+bool DataIO::ImportImages(frame_t &cur_frame, bool show)
 {
     std::chrono::steady_clock::time_point tic = std::chrono::steady_clock::now();
     cur_frame.rgb_image = cv::imread(cur_frame.image_file_path, CV_LOAD_IMAGE_COLOR); // Read the file
@@ -18,10 +18,6 @@ bool IO::ImportImages(frame_t &cur_frame, bool show)
     { // Check for invalid input
         std::cout << "No more images" << std::endl;
         return false;
-    }
-    else
-    {
-        std::cout << "Import Image [ " << cur_frame.image_file_path << " ] done." << std::endl;
     }
     
     std::chrono::steady_clock::time_point toc = std::chrono::steady_clock::now();

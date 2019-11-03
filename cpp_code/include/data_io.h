@@ -6,11 +6,11 @@
 
 namespace p3dv
 {
-class IO
+class DataIO
 {
    public:
 
-    bool ImportImages(frame_t &cur_frame, bool show);
+    bool ImportImages(frame_t &cur_frame, bool show=true);
 
 };
 } // namespace p3dv

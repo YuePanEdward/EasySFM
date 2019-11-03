@@ -119,21 +119,27 @@ struct frame_pair_t
 
     pose_3d_t T_21;  
 
-
+    frame_pair_t(unsigned int i, unsigned int j, std::vector<cv::DMatch>& input_matches)
+    {
+        frame_id_1=i;
+        frame_id_2=j;
+        matches.assign(input_matches.begin(),input_matches.end()); 
+        T_21.SetPose(Eigen::Matrix4d::Identity());
+    }
 };
 
 struct frame_graph_t
 {
      std::vector<std::vector<frame_pair_t>> frame_graph;
      
-     frame_graph_t(unsigned int frame_num)
-     {
-         frame_graph.resize(frame_num);
-         for (int i=0;i++;i<frame_num)
-         {
-             frame_graph[i].resize(frame_num);
-         }
-     }
+    //  frame_graph_t(unsigned int frame_num)
+    //  {   
+    //      frame_graph.resize(frame_num);
+    //      for (int i=0;i++;i<frame_num)
+    //      {
+    //          frame_graph[i].resize(frame_num);
+    //      }
+    //  }
 
 };
 
