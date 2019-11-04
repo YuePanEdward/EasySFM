@@ -7,7 +7,7 @@
 #include "utility.h"
 #include "data_io.h"
 #include "feature_matching.h"
-#include "estimate_motion_eg.h"
+#include "estimate_motion.h"
 
 using namespace cv;
 using namespace std;
@@ -52,7 +52,7 @@ int main(int argc, char **argv)
     FeatureMatching fm;
     vector<vector<frame_pair_t>> img_match_graph;
 
-    EpipolarEstimator ee;
+    MotionEstimator ee;
 
     // Detect feature points in all the images
     cout << "Begin feature extraction" << endl;
