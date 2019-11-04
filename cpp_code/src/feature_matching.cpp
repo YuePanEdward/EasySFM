@@ -2,7 +2,7 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/features2d/features2d.hpp>
-#include <opencv2/nonfree/nonfree.hpp>
+#include <opencv2/xfeatures2d/nonfree.hpp>
 
 #include <chrono>
 #include <iostream>
@@ -13,8 +13,11 @@ using namespace p3dv;
 
 bool FeatureMatching::detectFeaturesORB(frame_t &cur_frame, bool show)
 {
-    cv::Ptr<cv::FeatureDetector> detector = cv::FeatureDetector::create("ORB");
-    cv::Ptr<cv::DescriptorExtractor> descriptor = cv::DescriptorExtractor::create("ORB");
+    cv::Ptr<cv::FeatureDetector> detector = cv::ORB::create();
+    cv::Ptr<cv::DescriptorExtractor> descriptor = cv::ORB::create();
+    
+    // cv::Ptr<cv::FeatureDetector> detector = cv::FeatureDetector::create("ORB");
+    // cv::Ptr<cv::DescriptorExtractor> descriptor = cv::DescriptorExtractor::create("ORB");
 
     std::chrono::steady_clock::time_point tic = std::chrono::steady_clock::now();
     detector->detect(cur_frame.rgb_image, cur_frame.keypoints);
@@ -38,14 +41,14 @@ bool FeatureMatching::detectFeaturesORB(frame_t &cur_frame, bool show)
 
 bool FeatureMatching::detectFeaturesSURF(frame_t &cur_frame, int minHessian, bool show)
 {
-    cv::SurfFeatureDetector detector(minHessian);
-    cv::SurfDescriptorExtractor descriptor;
+    cv::Ptr<cv::FeatureDetector> detector = cv::xfeatures2d::SURF::create(minHessian);
+    cv::Ptr<cv::DescriptorExtractor> descriptor = cv::xfeatures2d::SURF::create();
 
     std::chrono::steady_clock::time_point tic = std::chrono::steady_clock::now();
 
-    detector.detect(cur_frame.rgb_image, cur_frame.keypoints);
+    detector->detect(cur_frame.rgb_image, cur_frame.keypoints);
 
-    descriptor.compute(cur_frame.rgb_image, cur_frame.keypoints, cur_frame.descriptors);
+    descriptor->compute(cur_frame.rgb_image, cur_frame.keypoints, cur_frame.descriptors);
 
     std::chrono::steady_clock::time_point toc = std::chrono::steady_clock::now();
     std::chrono::duration<double> time_used = std::chrono::duration_cast<std::chrono::duration<double>>(toc - tic);

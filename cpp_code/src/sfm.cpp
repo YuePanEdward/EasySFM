@@ -101,7 +101,7 @@ int main(int argc, char **argv)
                 
                 if (temp_matches.size() > 15)
                 {
-                    ee.estimateE8Points(frames[i].keypoints, frames[j].keypoints, temp_matches, K_mat, T_mat);
+                    ee.estimateE5Points(frames[i].keypoints, frames[j].keypoints, temp_matches, K_mat, T_mat);
                 }
             }
             frame_pair_t temp_pair(i, j, temp_matches, T_mat);
