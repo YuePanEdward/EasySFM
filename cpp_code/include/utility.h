@@ -119,12 +119,12 @@ struct frame_pair_t
 
     pose_3d_t T_21;  
 
-    frame_pair_t(unsigned int i, unsigned int j, std::vector<cv::DMatch>& input_matches)
+    frame_pair_t(unsigned int i, unsigned int j, std::vector<cv::DMatch>& input_matches, Eigen::Matrix4f & T_mat_21)
     {
         frame_id_1=i;
         frame_id_2=j;
         matches.assign(input_matches.begin(),input_matches.end()); 
-        T_21.SetPose(Eigen::Matrix4d::Identity());
+        T_21.SetPose(T_mat_21.cast <double> ());
     }
 };
 
@@ -146,6 +146,11 @@ struct frame_graph_t
 struct pointcloud_sparse_t
 {
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr rgb_pointcloud;
+};
+
+enum feature_type
+{
+    SIFT,SURF,ORB
 };
 
 } // namespace p3dv

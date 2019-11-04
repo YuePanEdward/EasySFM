@@ -9,7 +9,7 @@ Structure-from-motion project for ETH P3DV ([Photogrammetry and 3D Vision](https
 
 1. Install dependent 3rd libraries: 
 
-[PCL](https://github.com/PointCloudLibrary/pcl), [OpenCV](https://github.com/opencv/opencv), [Eigen](https://eigen.tuxfamily.org/dox/), [Ceres](https://github.com/ceres-solver/ceres-solver)
+[OpenCV(>=3)](https://github.com/opencv/opencv),[PCL(>=1.7)](https://github.com/PointCloudLibrary/pcl), [Eigen3](https://eigen.tuxfamily.org/dox/), [Ceres](https://github.com/ceres-solver/ceres-solver)
 
 
 2. Compile

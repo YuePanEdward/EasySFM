@@ -4,12 +4,13 @@
 
 #include <chrono>
 #include <iostream>
+#include <fstream>
 
 #include "data_io.h"
 
 using namespace p3dv;
 
-bool DataIO::ImportImages(frame_t &cur_frame, bool show)
+bool DataIO::importImages(frame_t &cur_frame, bool show)
 {
     std::chrono::steady_clock::time_point tic = std::chrono::steady_clock::now();
     cur_frame.rgb_image = cv::imread(cur_frame.image_file_path, CV_LOAD_IMAGE_COLOR); // Read the file
@@ -33,4 +34,27 @@ bool DataIO::ImportImages(frame_t &cur_frame, bool show)
     }
 
     return true;
+}
+
+bool DataIO::importCalib(const std::string &fileName, Eigen::Matrix3f &K_mat)
+{
+	std::ifstream in(fileName, std::ios::in);
+	if (!in)
+	{
+		return false;
+	}
+	double a_ = 0, b_ = 0, c_ = 0;
+	int i = 0;
+	while (!in.eof())
+	{
+		if (i<3) in >> K_mat(i,0) >> K_mat(i,1) >> K_mat(i,2);
+		if (in.fail())
+		{
+			break;
+		}
+		++i;
+	}
+	in.close();
+	std::cout << "Import camera calibration file done." << std::endl;
+	return true;
 }

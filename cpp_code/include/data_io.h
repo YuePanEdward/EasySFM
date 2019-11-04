@@ -10,7 +10,9 @@ class DataIO
 {
    public:
 
-    bool ImportImages(frame_t &cur_frame, bool show=true);
+    bool importImages(frame_t &cur_frame, bool show=true);
+    
+    bool importCalib(const std::string &fileName, Eigen::Matrix3f &K_mat);
 
 };
 } // namespace p3dv

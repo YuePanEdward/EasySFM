@@ -11,7 +11,7 @@
 
 using namespace p3dv;
 
-bool FeatureMatching::DetectFeaturesORB(frame_t &cur_frame, bool show)
+bool FeatureMatching::detectFeaturesORB(frame_t &cur_frame, bool show)
 {
     cv::Ptr<cv::FeatureDetector> detector = cv::FeatureDetector::create("ORB");
     cv::Ptr<cv::DescriptorExtractor> descriptor = cv::DescriptorExtractor::create("ORB");
@@ -36,7 +36,7 @@ bool FeatureMatching::DetectFeaturesORB(frame_t &cur_frame, bool show)
     return true;
 }
 
-bool FeatureMatching::DetectFeaturesSURF(frame_t &cur_frame, int minHessian, bool show)
+bool FeatureMatching::detectFeaturesSURF(frame_t &cur_frame, int minHessian, bool show)
 {
     cv::SurfFeatureDetector detector(minHessian);
     cv::SurfDescriptorExtractor descriptor;
@@ -63,7 +63,7 @@ bool FeatureMatching::DetectFeaturesSURF(frame_t &cur_frame, int minHessian, boo
     return true;
 }
 
-bool FeatureMatching::MatchFeaturesORB(frame_t &cur_frame_1, frame_t &cur_frame_2, std::vector<cv::DMatch> &matches,
+bool FeatureMatching::matchFeaturesORB(frame_t &cur_frame_1, frame_t &cur_frame_2, std::vector<cv::DMatch> &matches,
                                        double ratio_thre, bool show)
 {
     cv::Ptr<cv::DescriptorMatcher> matcher = cv::DescriptorMatcher::create("BruteForce-Hamming");
@@ -105,7 +105,7 @@ bool FeatureMatching::MatchFeaturesORB(frame_t &cur_frame_1, frame_t &cur_frame_
     return true;
 }
 
-bool FeatureMatching::MatchFeaturesSURF(frame_t &cur_frame_1, frame_t &cur_frame_2, std::vector<cv::DMatch> &matches,
+bool FeatureMatching::matchFeaturesSURF(frame_t &cur_frame_1, frame_t &cur_frame_2, std::vector<cv::DMatch> &matches,
                                         double ratio_thre, bool show)
 {
 
