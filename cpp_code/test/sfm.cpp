@@ -19,7 +19,8 @@ int main(int argc, char **argv)
     string image_data_path = argv[1];
     string image_list_path = argv[2];
     string calib_file_path = argv[3];
-    string use_feature = argv[4];
+    string output_file_path = argv[4];
+    string use_feature = argv[5];
     char using_feature = use_feature.c_str()[0];
 
     vector<frame_t> frames;
@@ -58,7 +59,12 @@ int main(int argc, char **argv)
     cout << "Begin feature extraction" << endl;
     for (int i = 0; i < frame_number; i++)
     {
+        //Import images
         io.importImages(frames[i], false);
+
+        //Set K
+        frames[i].K_cam = K_mat;
+
         switch (using_feature)
         {
         case 'S':
@@ -83,28 +89,41 @@ int main(int argc, char **argv)
         for (int j = 0; j < frame_number; j++)
         {
             std::vector<cv::DMatch> temp_matches;
+            std::vector<cv::DMatch> inlier_matches;
             Eigen::Matrix4f T_mat = Eigen::Matrix4f::Identity();
             if (i < j)
             {
                 switch (using_feature)
                 {
                 case 'S':
-                    fm.matchFeaturesSURF(frames[i], frames[j], temp_matches, 0.7, false);
+                    fm.matchFeaturesSURF(frames[i], frames[j], temp_matches, 0.7);
                     break;
                 case 'O':
-                    fm.matchFeaturesORB(frames[i], frames[j], temp_matches, 0.7, true);
+                    fm.matchFeaturesORB(frames[i], frames[j], temp_matches, 0.7);
                     break;
                 default:
                     cout << "Wrong feature input. Use ORB as default feature." << endl;
                     fm.matchFeaturesORB(frames[i], frames[j], temp_matches);
                 }
-                
+
                 if (temp_matches.size() > 15)
                 {
-                    ee.estimateE5Points(frames[i].keypoints, frames[j].keypoints, temp_matches, K_mat, T_mat);
+                    ee.estimateE5PRANSAC(frames[i], frames[j], temp_matches, inlier_matches, K_mat, T_mat);
+
+                    // test
+                    frames[i].pose_cam = Eigen::Matrix4f::Identity();
+                    frames[j].pose_cam = T_mat * frames[i].pose_cam;
+
+                    pcl::PointCloud<pcl::PointXYZRGB>::Ptr temp_cloud(new pcl::PointCloud<pcl::PointXYZRGB>());
+                    ee.doTriangulation(frames[i], frames[j], inlier_matches, temp_cloud);
+
+                    // // Show point cloud
+                    //Output the point cloud
+                    //string output_filename = output_file_path + "/test_stf.pcd";
+                    //io.writePcdFile("here.pcd",temp_cloud);
                 }
             }
-            frame_pair_t temp_pair(i, j, temp_matches, T_mat);
+            frame_pair_t temp_pair(i, j, inlier_matches, T_mat);
 
             temp_row_pairs.push_back(temp_pair);
         }

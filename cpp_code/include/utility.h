@@ -5,9 +5,12 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/features2d/features2d.hpp>
+
 //PCL
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
+
+
 //Eigen
 #include <Eigen/Core>
 #include <Eigen/Geometry>
@@ -97,9 +100,9 @@ struct frame_t
     std::vector<cv::KeyPoint> keypoints;
     cv::Mat descriptors;
 
-    pose_3d_t pose_cam;    // extrinsic elements of the camera
-    Eigen::Matrix3d K_cam; // intrinsic elements of the camera
-    Eigen::Matrix4d P_cam; // projection matrix of the camera
+    Eigen::Matrix4f pose_cam;    // extrinsic elements of the camera
+    Eigen::Matrix3f K_cam;       // intrinsic elements of the camera
+    Eigen::Matrix4f P_cam;       // projection matrix of the camera
 
     frame_t(unsigned int id, std::string &image_path)
     {
@@ -117,14 +120,14 @@ struct frame_pair_t
     
     std::vector<cv::DMatch> best_matches;
 
-    pose_3d_t T_21;  
+    Eigen::Matrix4f T_21;  
 
     frame_pair_t(unsigned int i, unsigned int j, std::vector<cv::DMatch>& input_matches, Eigen::Matrix4f & T_mat_21)
     {
         frame_id_1=i;
         frame_id_2=j;
         matches.assign(input_matches.begin(),input_matches.end()); 
-        T_21.SetPose(T_mat_21.cast <double> ());
+        T_21=T_mat_21;
     }
 };
 

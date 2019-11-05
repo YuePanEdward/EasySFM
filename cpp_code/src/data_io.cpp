@@ -58,3 +58,13 @@ bool DataIO::importCalib(const std::string &fileName, Eigen::Matrix3f &K_mat)
 	std::cout << "Import camera calibration file done." << std::endl;
 	return true;
 }
+
+bool DataIO::writePcdFile(const std::string &fileName, const pcl::PointCloud<pcl::PointXYZRGB>::Ptr &pointCloud)
+{
+	if (pcl::io::savePCDFileBinary(fileName, *pointCloud) == -1) 
+	{
+		PCL_ERROR("Couldn't write file\n");
+		return false;
+	}
+	return true;
+}
