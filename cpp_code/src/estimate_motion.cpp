@@ -11,6 +11,8 @@
 //PCL
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
+#include <pcl/visualization/common/common.h>
+#include <pcl/visualization/pcl_visualizer.h>
 
 #include <chrono>
 #include <iostream>
@@ -57,10 +59,10 @@ bool MotionEstimator::estimateE8Points(std::vector<cv::KeyPoint> &keypoints1,
     //      << T << std::endl;
 }
 
-bool MotionEstimator::estimateE5PRANSAC(frame_t &cur_frame_1, frame_t &cur_frame_2,
-                                        std::vector<cv::DMatch> &matches, std::vector<cv::DMatch> &inlier_matches,
-                                        Eigen::Matrix3f &K, Eigen::Matrix4f &T,
-                                        double ransac_prob, double ransac_thre, bool show)
+bool MotionEstimator::estimate2D2D_E5P_RANSAC(frame_t &cur_frame_1, frame_t &cur_frame_2,
+                                              std::vector<cv::DMatch> &matches, std::vector<cv::DMatch> &inlier_matches,
+                                              Eigen::Matrix3f &K, Eigen::Matrix4f &T,
+                                              double ransac_prob, double ransac_thre, bool show)
 {
     std::chrono::steady_clock::time_point tic = std::chrono::steady_clock::now();
 
@@ -127,20 +129,57 @@ bool MotionEstimator::estimateE5PRANSAC(frame_t &cur_frame_1, frame_t &cur_frame
     }
 }
 
-void MotionEstimator::doTriangulation(frame_t &cur_frame_1, frame_t &cur_frame_2,
+bool MotionEstimator::estimate2D3D_P3P_RANSAC(frame_t &cur_frame, pointcloud_sparse_t &cur_map_3d,
+                                              bool show = true)
+{
+    std::chrono::steady_clock::time_point tic = std::chrono::steady_clock::now();
+
+    std::vector<cv::DMatch> good_matches;
+
+    //std::vector<cv::DMatch> good_matches;
+
+    std::vector<cv::Point2f> pointset2d;
+    std::vector<cv::Point3f> pointset3d;
+
+    cv::PnPProblem pnp_solver(params_WEBCAM); // instantiate PnPProblem class
+
+    // Construct the 2d-3d initial matchings
+
+    // Assign value for pointset2d and pointset3d
+
+    // Use RANSAC P3P to estiamte the optimal transformation
+    int iterationsCount = 1000;    // number of Ransac iterations.
+    float reprojectionError = 1.5; // maximum allowed distance to consider it an inlier.
+    float confidence = 0.99;       // RANSAC successful confidence.
+
+    cv::Mat R;
+    cv::Mat t;
+    cv::Mat inliers;
+
+    cv::solvePnPRansac(pointset3d, pointset2d, camera_mat, distort_para, R, t,
+                       false, iterationsCount, reprojectionError, confidence, inliers, SOLVEPNP_P3P);
+
+    
+}
+
+bool MotionEstimator::doTriangulation(frame_t &cur_frame_1, frame_t &cur_frame_2,
                                       const std::vector<cv::DMatch> &matches,
-                                      pcl::PointCloud<pcl::PointXYZRGB>::Ptr &sparse_pointcloud)
+                                      pcl::PointCloud<pcl::PointXYZRGB>::Ptr &sparse_pointcloud, bool show)
 {
     cv::Mat T1_mat;
     cv::Mat T2_mat;
     cv::Mat camera_mat;
 
-    Eigen::Matrix<float,3,4> T1 = cur_frame_1.pose_cam.block(0,0,3,4);
-    Eigen::Matrix<float,3,4> T2 = cur_frame_2.pose_cam.block(0,0,3,4);
+    Eigen::Matrix<float, 3, 4> T1 = cur_frame_1.pose_cam.block(0, 0, 3, 4);
+    Eigen::Matrix<float, 3, 4> T2 = cur_frame_2.pose_cam.block(0, 0, 3, 4);
 
     cv::eigen2cv(cur_frame_1.K_cam, camera_mat);
     cv::eigen2cv(T1, T1_mat);
     cv::eigen2cv(T2, T2_mat);
+
+    // std::cout<<camera_mat<<std::endl;
+    // std::cout<<T1_mat<<std::endl;
+    // std::cout<<T2_mat<<std::endl;
 
     std::vector<cv::Point2f> pointset1;
     std::vector<cv::Point2f> pointset2;
@@ -154,21 +193,53 @@ void MotionEstimator::doTriangulation(frame_t &cur_frame_1, frame_t &cur_frame_2
     cv::Mat pts_3d_homo;
     cv::triangulatePoints(T1_mat, T2_mat, pointset1, pointset2, pts_3d_homo);
 
+    std::cout << "Triangularization done." << std::endl;
+
     // De-homo
     for (int i = 0; i < pts_3d_homo.cols; i++)
     {
         cv::Mat pts_3d = pts_3d_homo.col(i);
+
         pts_3d /= pts_3d.at<float>(3, 0);
 
         pcl::PointXYZRGB pt_temp;
         pt_temp.x = pts_3d.at<float>(0, 0);
         pt_temp.y = pts_3d.at<float>(1, 0);
         pt_temp.z = pts_3d.at<float>(2, 0);
-        pt_temp.r=255;
-        pt_temp.g=0;
-        pt_temp.b=0;
+        pt_temp.r = 255;
+        pt_temp.g = 0;
+        pt_temp.b = 0;
         sparse_pointcloud->points.push_back(pt_temp);
     }
 
-    std::cout<< "Generate new sparse point cloud done." <<std::endl;
+    std::cout << "Point cloud generated done (" << sparse_pointcloud->points.size() << " points)" << std::endl;
+
+    if (show)
+    {
+        boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer(new pcl::visualization::PCLVisualizer("Sfm Viewer"));
+        viewer->setBackgroundColor(0, 0, 0);
+
+        // for (int i = 0; i < sparse_pointcloud->points.size(); i++)
+        // {
+        //     char sparse_point[256];
+        //     pcl::PointXYZ ptc_temp;
+        //     ptc_temp.x = sparse_pointcloud->points[i].x;
+        //     ptc_temp.y = sparse_pointcloud->points[i].y;
+        //     ptc_temp.z = sparse_pointcloud->points[i].z;
+        //     sprintf(sparse_point, "SP_%03u", i);
+        //     viewer->addSphere(ptc_temp, 0.2, 1.0, 0.0, 0.0, sparse_point);
+        // }
+
+        viewer->addPointCloud(sparse_pointcloud, "sparsepointcloud");
+
+        std::cout << "Click X(close) to continue..." << std::endl;
+        while (!viewer->wasStopped())
+        {
+            viewer->spinOnce(100);
+            boost::this_thread::sleep(boost::posix_time::microseconds(100000));
+        }
+    }
+
+    std::cout << "Generate new sparse point cloud done." << std::endl;
+    return true;
 }

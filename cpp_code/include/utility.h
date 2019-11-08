@@ -108,6 +108,7 @@ struct frame_t
     {
         frame_id = id;
         image_file_path = image_path;
+        pose_cam = Eigen::Matrix4f::Identity();
     }
 };
 
@@ -149,6 +150,9 @@ struct frame_graph_t
 struct pointcloud_sparse_t
 {
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr rgb_pointcloud;
+    
+    std::vector<cv::Mat> points_descriptors;
+
 };
 
 enum feature_type

@@ -108,10 +108,10 @@ int main(int argc, char **argv)
 
                 if (temp_matches.size() > 15)
                 {
-                    ee.estimateE5PRANSAC(frames[i], frames[j], temp_matches, inlier_matches, K_mat, T_mat);
+                    ee.estimate2D2D_E5P_RANSAC(frames[i], frames[j], temp_matches, inlier_matches, K_mat, T_mat);
 
                     // test
-                    frames[i].pose_cam = Eigen::Matrix4f::Identity();
+                    //frames[i].pose_cam = Eigen::Matrix4f::Identity();
                     frames[j].pose_cam = T_mat * frames[i].pose_cam;
 
                     pcl::PointCloud<pcl::PointXYZRGB>::Ptr temp_cloud(new pcl::PointCloud<pcl::PointXYZRGB>());
