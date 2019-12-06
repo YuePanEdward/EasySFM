@@ -23,7 +23,7 @@ public:
                        const std::vector<cv::DMatch> &matches,
                        pcl::PointCloud<pcl::PointXYZRGB>::Ptr &sparse_pointcloud, bool show = true);
 
-  bool estimate2D3D_P3P_RANSAC(frame_t &cur_frame, pointcloud_sparse_t &cur_map_3d,
+  bool estimate2D3D_P3P_RANSAC(frame_t &cur_frame, pointcloud_sparse_t &cur_map_3d, std::vector<cv::DMatch> &matches,
                                bool show = true);
 
 private:

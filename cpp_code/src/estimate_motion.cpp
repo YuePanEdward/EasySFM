@@ -129,8 +129,8 @@ bool MotionEstimator::estimate2D2D_E5P_RANSAC(frame_t &cur_frame_1, frame_t &cur
     }
 }
 
-bool MotionEstimator::estimate2D3D_P3P_RANSAC(frame_t &cur_frame, pointcloud_sparse_t &cur_map_3d,
-                                              bool show = true)
+bool MotionEstimator::estimate2D3D_P3P_RANSAC(frame_t &cur_frame, pointcloud_sparse_t &cur_map_3d, std::vector<cv::DMatch> &matches,
+                                              bool show)
 {
     std::chrono::steady_clock::time_point tic = std::chrono::steady_clock::now();
 
@@ -140,8 +140,6 @@ bool MotionEstimator::estimate2D3D_P3P_RANSAC(frame_t &cur_frame, pointcloud_spa
 
     std::vector<cv::Point2f> pointset2d;
     std::vector<cv::Point3f> pointset3d;
-
-    cv::PnPProblem pnp_solver(params_WEBCAM); // instantiate PnPProblem class
 
     // Construct the 2d-3d initial matchings
 
@@ -156,8 +154,8 @@ bool MotionEstimator::estimate2D3D_P3P_RANSAC(frame_t &cur_frame, pointcloud_spa
     cv::Mat t;
     cv::Mat inliers;
 
-    cv::solvePnPRansac(pointset3d, pointset2d, camera_mat, distort_para, R, t,
-                       false, iterationsCount, reprojectionError, confidence, inliers, SOLVEPNP_P3P);
+    // cv::solvePnPRansac(pointset3d, pointset2d, camera_mat, distort_para, R, t,
+    //                    false, iterationsCount, reprojectionError, confidence, inliers, SOLVEPNP_P3P);
 
     
 }
@@ -166,6 +164,8 @@ bool MotionEstimator::doTriangulation(frame_t &cur_frame_1, frame_t &cur_frame_2
                                       const std::vector<cv::DMatch> &matches,
                                       pcl::PointCloud<pcl::PointXYZRGB>::Ptr &sparse_pointcloud, bool show)
 {
+    std::chrono::steady_clock::time_point tic = std::chrono::steady_clock::now();
+    
     cv::Mat T1_mat;
     cv::Mat T2_mat;
     cv::Mat camera_mat;
@@ -193,7 +193,6 @@ bool MotionEstimator::doTriangulation(frame_t &cur_frame_1, frame_t &cur_frame_2
     cv::Mat pts_3d_homo;
     cv::triangulatePoints(T1_mat, T2_mat, pointset1, pointset2, pts_3d_homo);
 
-    std::cout << "Triangularization done." << std::endl;
 
     // De-homo
     for (int i = 0; i < pts_3d_homo.cols; i++)
@@ -212,7 +211,12 @@ bool MotionEstimator::doTriangulation(frame_t &cur_frame_1, frame_t &cur_frame_2
         sparse_pointcloud->points.push_back(pt_temp);
     }
 
-    std::cout << "Point cloud generated done (" << sparse_pointcloud->points.size() << " points)" << std::endl;
+    std::cout << "Point cloud generated done: [ " << sparse_pointcloud->points.size() << " ] points." << std::endl;
+    
+    std::chrono::steady_clock::time_point toc = std::chrono::steady_clock::now();
+    std::chrono::duration<double> time_used = std::chrono::duration_cast<std::chrono::duration<double>>(toc - tic);
+    std::cout << "Triangularization done in " << time_used.count() << " seconds. " << std::endl;
+    
 
     if (show)
     {

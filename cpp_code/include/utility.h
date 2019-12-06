@@ -99,6 +99,7 @@ struct frame_t
 
     std::vector<cv::KeyPoint> keypoints;
     cv::Mat descriptors;
+    std::vector<int> unique_pixel_ids;  // assign the initial value as -1
 
     Eigen::Matrix4f pose_cam;    // extrinsic elements of the camera
     Eigen::Matrix3f K_cam;       // intrinsic elements of the camera
@@ -132,6 +133,7 @@ struct frame_pair_t
     }
 };
 
+
 struct frame_graph_t
 {
      std::vector<std::vector<frame_pair_t>> frame_graph;
@@ -151,7 +153,9 @@ struct pointcloud_sparse_t
 {
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr rgb_pointcloud;
     
-    std::vector<cv::Mat> points_descriptors;
+    std::vector<int> unique_point_ids;
+
+    //std::vector<cv::Mat> points_descriptors;
 
 };
 

@@ -18,7 +18,12 @@ public:
                         double ratio_thre = 0.7, bool show = true);
 
   bool matchFeaturesSURF(frame_t &cur_frame_1, frame_t &cur_frame_2, std::vector<cv::DMatch> &matches,
-                         double ratio_thre = 0.6 , bool show = true);
+                         double ratio_thre = 0.6, bool show = true);
+
+  bool findInitializeFramePair(std::vector<std::vector<bool>> &feature_track_matrix, std::vector<frame_t> &frames,
+                               int num_unique_points, int &initialization_frame_1, int &initialization_frame_2);
+
+  bool matchFeatures2D3D();
 };
 } // namespace p3dv
 #endif

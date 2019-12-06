@@ -15,7 +15,7 @@ bool FeatureMatching::detectFeaturesORB(frame_t &cur_frame, bool show)
 {
     cv::Ptr<cv::FeatureDetector> detector = cv::ORB::create();
     cv::Ptr<cv::DescriptorExtractor> descriptor = cv::ORB::create();
-    
+
     // cv::Ptr<cv::FeatureDetector> detector = cv::FeatureDetector::create("ORB");
     // cv::Ptr<cv::DescriptorExtractor> descriptor = cv::DescriptorExtractor::create("ORB");
 
@@ -23,6 +23,9 @@ bool FeatureMatching::detectFeaturesORB(frame_t &cur_frame, bool show)
     detector->detect(cur_frame.rgb_image, cur_frame.keypoints);
 
     descriptor->compute(cur_frame.rgb_image, cur_frame.keypoints, cur_frame.descriptors);
+
+    std::vector<int> unique_pixel_vec(cur_frame.keypoints.size(), -1);
+    cur_frame.unique_pixel_ids.insert(cur_frame.unique_pixel_ids.begin(), unique_pixel_vec.begin(), unique_pixel_vec.end());
 
     std::chrono::steady_clock::time_point toc = std::chrono::steady_clock::now();
     std::chrono::duration<double> time_used = std::chrono::duration_cast<std::chrono::duration<double>>(toc - tic);
@@ -49,6 +52,9 @@ bool FeatureMatching::detectFeaturesSURF(frame_t &cur_frame, int minHessian, boo
     detector->detect(cur_frame.rgb_image, cur_frame.keypoints);
 
     descriptor->compute(cur_frame.rgb_image, cur_frame.keypoints, cur_frame.descriptors);
+
+    std::vector<int> unique_pixel_vec(cur_frame.keypoints.size(), -1);
+    cur_frame.unique_pixel_ids.insert(cur_frame.unique_pixel_ids.begin(), unique_pixel_vec.begin(), unique_pixel_vec.end());
 
     std::chrono::steady_clock::time_point toc = std::chrono::steady_clock::now();
     std::chrono::duration<double> time_used = std::chrono::duration_cast<std::chrono::duration<double>>(toc - tic);
@@ -92,7 +98,7 @@ bool FeatureMatching::matchFeaturesORB(frame_t &cur_frame_1, frame_t &cur_frame_
     std::chrono::steady_clock::time_point toc = std::chrono::steady_clock::now();
     std::chrono::duration<double> time_used = std::chrono::duration_cast<std::chrono::duration<double>>(toc - tic);
     std::cout << "match ORB cost = " << time_used.count() << " seconds. " << std::endl;
-    std::cout << "# Correspondence: Initial [ " << initial_matches_nn2.size() << " ]  Filtered by Lowe ratio test [ " <<matches.size() << " ]" << std::endl;
+    std::cout << "# Correspondence: Initial [ " << initial_matches_nn2.size() << " ]  Filtered by Lowe ratio test [ " << matches.size() << " ]" << std::endl;
 
     if (show)
     {
@@ -135,7 +141,7 @@ bool FeatureMatching::matchFeaturesSURF(frame_t &cur_frame_1, frame_t &cur_frame
     std::chrono::steady_clock::time_point toc = std::chrono::steady_clock::now();
     std::chrono::duration<double> time_used = std::chrono::duration_cast<std::chrono::duration<double>>(toc - tic);
     std::cout << "match SURF cost = " << time_used.count() << " seconds. " << std::endl;
-    std::cout << "# Correspondence: Initial [ " << initial_matches_nn2.size() << " ]  Filtered by Lowe ratio test [ " <<matches.size() << " ]" << std::endl;
+    std::cout << "# Correspondence: Initial [ " << initial_matches_nn2.size() << " ]  Filtered by Lowe ratio test [ " << matches.size() << " ]" << std::endl;
 
     if (show)
     {
@@ -149,4 +155,50 @@ bool FeatureMatching::matchFeaturesSURF(frame_t &cur_frame_1, frame_t &cur_frame
     }
 
     return true;
+}
+
+bool FeatureMatching::findInitializeFramePair(std::vector<std::vector<bool>> &feature_track_matrix, std::vector<frame_t> &frames,
+                                              int num_unique_points, int &initialization_frame_1, int &initialization_frame_2)
+{
+    std::chrono::steady_clock::time_point tic = std::chrono::steady_clock::now();
+    
+    int frame_number=frames.size();
+
+    //resize feature track matrix to frame_num * unique_point_num
+    std::vector<int> point_track_frame_num(num_unique_points, 0);
+    for (int i = 0; i < frame_number; i++)
+    {
+        feature_track_matrix[i].resize(num_unique_points);
+        for (int j = 0; j < num_unique_points; j++)
+        {
+            point_track_frame_num[j] += feature_track_matrix[i][j];
+        }
+    }
+
+    //Find frame pair for initialization
+    int max_sum_track_frame_num = 0;
+
+    for (int i = 0; i < frame_number; i++)
+    {
+        for (int j = 0; j < i; j++)
+        {
+            int temp_sum_track_frame_num = 0;
+            for (int k = 0; k < point_track_frame_num.size(); k++)
+            {
+                if (feature_track_matrix[i][k] && feature_track_matrix[j][k])
+                    temp_sum_track_frame_num += point_track_frame_num[k];
+            }
+            if (temp_sum_track_frame_num >= max_sum_track_frame_num)
+            {
+                max_sum_track_frame_num = temp_sum_track_frame_num;
+                initialization_frame_1 = i;
+                initialization_frame_2 = j;
+            }
+        }
+    }
+    
+    std::chrono::steady_clock::time_point toc = std::chrono::steady_clock::now();
+    std::chrono::duration<double> time_used = std::chrono::duration_cast<std::chrono::duration<double>>(toc - tic);
+    std::cout << "Find initialization frame pair done in " << time_used.count() << " seconds. " << std::endl;
+    std::cout << "Frame " << initialization_frame_1 << " and Frame " << initialization_frame_2 << " with " << max_sum_track_frame_num << " trackings are set as the frame pair for initialization" << std::endl;
 }
