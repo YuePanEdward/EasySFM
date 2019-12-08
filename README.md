@@ -26,5 +26,5 @@ make
 cd ..
 # Demo
 sh script/run.sh
-# If you'd like to use your own data, configure the run.sh file
+# If you'd like to use your own data or change some vital parameters, configure the run.sh file
 ```

@@ -111,6 +111,14 @@ struct frame_t
         image_file_path = image_path;
         pose_cam = Eigen::Matrix4f::Identity();
     }
+
+    bool init_pixel_ids()
+    {
+        for (int i=0;i<keypoints.size();i++ )
+        {
+            unique_pixel_ids.push_back(-1);
+        }
+    }
 };
 
 struct frame_pair_t
@@ -155,7 +163,11 @@ struct pointcloud_sparse_t
     
     std::vector<int> unique_point_ids;
 
-    //std::vector<cv::Mat> points_descriptors;
+    pointcloud_sparse_t()
+    {
+        rgb_pointcloud= pcl::PointCloud<pcl::PointXYZRGB>::Ptr(new pcl::PointCloud<pcl::PointXYZRGB>);
+        //std::cout<< "init done"<<std::endl;
+    }
 
 };
 
