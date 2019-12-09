@@ -309,9 +309,9 @@ bool MotionEstimator::doTriangulation(frame_t &cur_frame_1, frame_t &cur_frame_2
         uchar green = cur_frame_1.rgb_image.at<cv::Vec3b>(cur_key_pixel.y, cur_key_pixel.x)[1];
         uchar red = cur_frame_1.rgb_image.at<cv::Vec3b>(cur_key_pixel.y, cur_key_pixel.x)[2];
 
-        pt_temp.r = red;
-        pt_temp.g = green;
-        pt_temp.b = blue;
+        pt_temp.r = 1.0*red;
+        pt_temp.g = 1.0*green;
+        pt_temp.b = 1.0*blue;
         sparse_pointcloud.rgb_pointcloud->points.push_back(pt_temp);
     }
 

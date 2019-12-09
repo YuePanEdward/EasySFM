@@ -8,6 +8,7 @@
 #include "data_io.h"
 #include "feature_matching.h"
 #include "estimate_motion.h"
+#include "ba.h"
 
 using namespace cv;
 using namespace std;
@@ -23,7 +24,7 @@ int main(int argc, char **argv)
     string use_feature = argv[5];
     char using_feature = use_feature.c_str()[0];
 
-    vector<frame_t> frames;
+    std::vector<frame_t> frames;
 
     ifstream image_list_file(image_list_path.c_str(), std::ios::in);
     if (!image_list_file.is_open())
@@ -73,7 +74,7 @@ int main(int argc, char **argv)
         switch (using_feature)
         {
         case 'S':
-            fm.detectFeaturesSURF(frames[i], 400, 0);
+            fm.detectFeaturesSURF(frames[i], 300, 0);
             break;
         case 'O':
             fm.detectFeaturesORB(frames[i], 0);
@@ -182,17 +183,19 @@ int main(int argc, char **argv)
     cout << "Frame [" << init_frame_2 << "] 's pose: " << endl
          << frames[init_frame_2].pose_cam << endl;
 
-    ee.doTriangulation(frames[init_frame_1], frames[init_frame_2], img_match_graph[init_frame_1][init_frame_2].matches, sfm_sparse_points,0);
+    ee.doTriangulation(frames[init_frame_1], frames[init_frame_2], img_match_graph[init_frame_1][init_frame_2].matches, sfm_sparse_points, 0);
 
-    //BA of initialization
-    //BundleAdjustment ba;
-    //ba.doBA(sfm_sparse_points,frames[init_frame_1], frames[init_frame_2]);
-
-    //SfM adding view
-    vector<bool> frames_to_process(frames.size(), 1);
+    std::vector<bool> frames_to_process(frames.size(), 1);
     frames_to_process[init_frame_1] = 0;
     frames_to_process[init_frame_2] = 0;
 
+    //BA of initialization
+    BundleAdjustment ba;
+    //ba.doSfMBA(frames, frames_to_process, sfm_sparse_points);
+
+    std::cout << "Now add the next view" << std::endl;
+
+    //SfM adding view
     int frames_to_process_count = frames.size() - 2;
     while (frames_to_process_count > 0)
     {
@@ -200,16 +203,17 @@ int main(int argc, char **argv)
 
         fm.findNextFrame(feature_track_matrix, frames_to_process, sfm_sparse_points.unique_point_ids, next_frame);
         ee.estimate2D3D_P3P_RANSAC(frames[next_frame], sfm_sparse_points);
-        cout << "Frame [" << next_frame << "] 's pose: " << endl << frames[next_frame].pose_cam << endl;
+        cout << "Frame [" << next_frame << "] 's pose: " << endl
+             << frames[next_frame].pose_cam << endl;
 
         for (int i = 0; i < frames.size(); i++)
         {
             if (!frames_to_process[i])
             {
                 if (next_frame > i) // frame 1 id should larger than frame 2 id
-                    ee.doTriangulation(frames[next_frame], frames[i], img_match_graph[next_frame][i].matches, sfm_sparse_points,0);
+                    ee.doTriangulation(frames[next_frame], frames[i], img_match_graph[next_frame][i].matches, sfm_sparse_points, 0);
                 else
-                    ee.doTriangulation(frames[i], frames[next_frame], img_match_graph[i][next_frame].matches, sfm_sparse_points,0);
+                    ee.doTriangulation(frames[i], frames[next_frame], img_match_graph[i][next_frame].matches, sfm_sparse_points, 0);
             }
         }
         //ba.doBA();
@@ -217,13 +221,24 @@ int main(int argc, char **argv)
         frames_to_process[next_frame] = 0;
         frames_to_process_count--;
     }
-    cout<<"Adding all the cameras done."<<endl;
-    
+    cout << "Adding all the cameras done." << endl;
+
     // Display final result
-    io.displaySFM(frames,frames_to_process,sfm_sparse_points,0);
-    
-    string output_file=output_file_path+"/sfm_sparse_point_cloud.pcd";
-    io.writePcdFile(output_file,sfm_sparse_points.rgb_pointcloud);
+    io.displaySFM(frames, frames_to_process, sfm_sparse_points, "SfM Result without BA", 0);
+
+    // Output the sparse point cloud
+    string output_file = output_file_path + "/sfm_sparse_point_cloud.ply";
+    io.writePlyFile(output_file, sfm_sparse_points.rgb_pointcloud);
+
+    // Do BA
+    ba.doSFMBA(frames, frames_to_process, sfm_sparse_points);
+
+    // Result of BA
+    io.displaySFM(frames, frames_to_process, sfm_sparse_points, "SfM Result with BA", 0);
+
+    // Output the sparse point cloud with BA
+    output_file = output_file_path + "/sfm_sparse_point_cloud_ba.ply";
+    io.writePlyFile(output_file, sfm_sparse_points.rgb_pointcloud);
 
     return 1;
 }

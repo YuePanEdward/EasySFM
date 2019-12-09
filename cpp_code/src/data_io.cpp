@@ -5,8 +5,6 @@
 //PCL
 #include <pcl/visualization/common/common.h>
 #include <pcl/visualization/pcl_visualizer.h>
-//#include <pcl/common/transforms.h>
-#include <pcl/registration/icp.h>
 
 #include <chrono>
 #include <iostream>
@@ -67,22 +65,79 @@ bool DataIO::importCalib(const std::string &fileName, Eigen::Matrix3f &K_mat)
 	return true;
 }
 
-bool DataIO::writePcdFile(const std::string &fileName, const pcl::PointCloud<pcl::PointXYZRGB>::Ptr &pointCloud)
+bool DataIO::writePcdFile(const std::string &fileName, pcl::PointCloud<pcl::PointXYZRGB>::Ptr &pointCloud)
 {
+	std::chrono::steady_clock::time_point tic = std::chrono::steady_clock::now();
+
+	pointCloud->width = 1;
+	pointCloud->height = pointCloud->points.size();
+
 	if (pcl::io::savePCDFileBinary(fileName, *pointCloud) == -1)
 	{
 		PCL_ERROR("Couldn't write file\n");
 		return false;
 	}
-	std::cout<<"Output done."<<std::endl;
+
+	std::chrono::steady_clock::time_point toc = std::chrono::steady_clock::now();
+	std::chrono::duration<double> time_used = std::chrono::duration_cast<std::chrono::duration<double>>(toc - tic);
+	std::cout << "Output [ " << pointCloud->points.size() << " ] points cost = " << time_used.count() << " seconds. " << std::endl;
+	std::cout << "Output pcd file done." << std::endl;
 	return true;
 }
 
-bool DataIO::displaySFM(std::vector<frame_t> &frames, std::vector<bool> &frames_to_process, pointcloud_sparse_t &sparse_pointcloud, bool black_background)
+bool DataIO::writePlyFile(const std::string &fileName, pcl::PointCloud<pcl::PointXYZRGB>::Ptr &pointCloud)
 {
-	boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer(new pcl::visualization::PCLVisualizer("Sfm Viewer"));
+	std::chrono::steady_clock::time_point tic = std::chrono::steady_clock::now();
+	
+	pointCloud->width = 1;
+	pointCloud->height = pointCloud->points.size();
+
+	if (pcl::io::savePLYFile(fileName, *pointCloud) == -1)
+	{
+		PCL_ERROR("Couldn't write file \n");
+		return false;
+	}
+
+	std::chrono::steady_clock::time_point toc = std::chrono::steady_clock::now();
+	std::chrono::duration<double> time_used = std::chrono::duration_cast<std::chrono::duration<double>>(toc - tic);
+	std::cout << "Output [ " << pointCloud->points.size() << " ] points cost = " << time_used.count() << " seconds. " << std::endl;
+	std::cout << "Output ply file done." << std::endl;
+	return true;
+}
+
+bool DataIO::writeTxtFile(const std::string &fileName, pcl::PointCloud<pcl::PointXYZRGB>::Ptr &pointCloud)
+{
+	std::ofstream ofs;
+	ofs.open(fileName);
+	if (ofs.is_open())
+	{
+		for (int i = 0; i < pointCloud->size(); ++i)
+		{
+			ofs << setiosflags(ios::fixed) << setprecision(5) << pointCloud->points[i].x << "  "
+				<< setiosflags(ios::fixed) << setprecision(5) << pointCloud->points[i].y << "  "
+				<< setiosflags(ios::fixed) << setprecision(5) << pointCloud->points[i].z << "  "
+				<< setiosflags(ios::fixed) << setprecision(3) << pointCloud->points[i].r << "  "
+				<< setiosflags(ios::fixed) << setprecision(3) << pointCloud->points[i].g << "  "
+				<< setiosflags(ios::fixed) << setprecision(3) << pointCloud->points[i].b << "  "
+				//<<"  "<< setiosflags(ios::fixed) << setprecision(5) << pointCloud->points[i].intensity
+				<< std::endl;
+		}
+		ofs.close();
+	}
+	else
+	{
+		return 0;
+	}
+	std::cout << "Output done." << std::endl;
+	return 1;
+}
+
+bool DataIO::displaySFM(std::vector<frame_t> &frames, std::vector<bool> &frames_to_process,
+						pointcloud_sparse_t &sparse_pointcloud, std::string viewer_name, bool black_background)
+{
+	boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer(new pcl::visualization::PCLVisualizer(viewer_name));
 	if (black_background)
-	    viewer->setBackgroundColor(0, 0, 0);
+		viewer->setBackgroundColor(0, 0, 0);
 	else
 		viewer->setBackgroundColor(255, 255, 255);
 
@@ -101,6 +156,10 @@ bool DataIO::displaySFM(std::vector<frame_t> &frames, std::vector<bool> &frames_
 	{
 		if (!frames_to_process[i])
 		{
+
+			std::cout << "Add frame [ " << i << " ] , pose:\n"
+					  << frames[i].pose_cam << std::endl;
+
 			//std::cout << "Begin" << std::endl;
 			pcl::PointCloud<pcl::PointXYZ>::Ptr camera_pointcloud(new pcl::PointCloud<pcl::PointXYZ>);
 			pcl::PointCloud<pcl::PointXYZ>::Ptr transformed_camera_pointcloud(new pcl::PointCloud<pcl::PointXYZ>);
@@ -163,7 +222,7 @@ bool DataIO::displaySFM(std::vector<frame_t> &frames, std::vector<bool> &frames_
 
 			n++;
 		}
-		std::cout << "Add Camera " << i << " done." << std::endl;
+		//std::cout << "Add Camera " << i << " done." << std::endl;
 	}
 
 	// Draw point cloud
@@ -174,6 +233,7 @@ bool DataIO::displaySFM(std::vector<frame_t> &frames, std::vector<bool> &frames_
 		ptc_temp.x = sparse_pointcloud.rgb_pointcloud->points[i].x;
 		ptc_temp.y = sparse_pointcloud.rgb_pointcloud->points[i].y;
 		ptc_temp.z = sparse_pointcloud.rgb_pointcloud->points[i].z;
+
 		sprintf(sparse_point, "SP_%03u", i);
 		viewer->addSphere(ptc_temp, point_size, sparse_pointcloud.rgb_pointcloud->points[i].r / 255.0, sparse_pointcloud.rgb_pointcloud->points[i].g / 255.0, sparse_pointcloud.rgb_pointcloud->points[i].b / 255.0, sparse_point);
 	}

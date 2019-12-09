@@ -52,7 +52,7 @@ AUX_SOURCE_DIRECTORY(${PROJECT_SOURCE_DIR}/src SRC_LIST)
 message("SRC_LIST is " ${SRC_LIST})
 
 #SET(DEP_LIBS ${DEP_LIBS} ${OpenCV_LIBS}  /usr/local/lib/libproj.so glog::glog ${GFLAGS_LIBRARIES})
-SET(DEP_LIBS ${DEP_LIBS} ${OpenCV_LIBS}  ${PCL_LIBRARIES})
+SET(DEP_LIBS ${DEP_LIBS} ${OpenCV_LIBS}  ${PCL_LIBRARIES} ${CERES_LIBRARIES})
 
 # SFM test
 add_executable(sfm ${PROJECT_SOURCE_DIR}/test/sfm.cpp ${SRC_LIST})

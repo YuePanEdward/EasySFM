@@ -12,7 +12,7 @@ public:
 
   bool detectFeaturesORB(frame_t &cur_frame, bool show = true);
 
-  bool detectFeaturesSURF(frame_t &cur_frame, int minHessian = 400, bool show = true);
+  bool detectFeaturesSURF(frame_t &cur_frame, int minHessian = 300, bool show = true);
 
   bool matchFeaturesORB(frame_t &cur_frame_1, frame_t &cur_frame_2, std::vector<cv::DMatch> &matches,
                         double ratio_thre = 0.7, bool show = true);
