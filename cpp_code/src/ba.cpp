@@ -9,7 +9,8 @@
 namespace p3dv
 {
 
-bool BundleAdjustment::setBAProblem(std::vector<frame_t> &frames, std::vector<bool> &process_frame_id, pointcloud_sparse_t &sfm_sparse_points)
+bool BundleAdjustment::setBAProblem(std::vector<frame_t> &frames, std::vector<bool> &process_frame_id,
+                                    pointcloud_sparse_t &sfm_sparse_points, int reference_frame_id)
 {
     num_observations_ = 0;
     num_cameras_ = 0;
@@ -39,6 +40,10 @@ bool BundleAdjustment::setBAProblem(std::vector<frame_t> &frames, std::vector<bo
                         break;
                     }
                 }
+            }
+            if (i == reference_frame_id) //Set camera that need to be fixed
+            {
+                ref_process_camera_id_ = num_cameras_;
             }
             num_cameras_++;
         }
@@ -102,8 +107,10 @@ bool BundleAdjustment::setBAProblem(std::vector<frame_t> &frames, std::vector<bo
 bool BundleAdjustment::solveBA()
 {
     ceres::Problem problem;
-
+    
     cv::Mat discoeff;
+
+    double fixed_threshold=1e-10;
     for (int i = 0; i < num_observations_; i++)
     {
         // Each Residual block takes a point and a camera as input and outputs a 2
@@ -116,7 +123,17 @@ bool BundleAdjustment::solveBA()
         problem.AddResidualBlock(cost_function,
                                  new ceres::CauchyLoss(0.6), // NULL /* squared loss */, /* new CauchyLoss(0.5) */
                                  mutable_camera_for_observation(i), mutable_point_for_observation(i));
+
         // later figure out how to set the first frame fixed.
+        //Fixed reference frame's parameters
+        if (camera_index_[i] == ref_process_camera_id_)
+        {
+            for (int j = 0; j < 6; j++)
+            {
+                problem.SetParameterLowerBound(mutable_camera_for_observation(i), j, -fixed_threshold);
+                problem.SetParameterUpperBound(mutable_camera_for_observation(i), j, fixed_threshold);
+            }
+        }
     }
 
     // Make Ceres automatically detect the bundle structure. Note that the
@@ -124,6 +141,8 @@ bool BundleAdjustment::solveBA()
     // for standard bundle adjustment problems.
     ceres::Solver::Options options;
     options.linear_solver_type = ceres::DENSE_SCHUR;
+    options.max_num_iterations = 100;
+    options.num_threads = 4;
     options.minimizer_progress_to_stdout = true;
     ceres::Solver::Summary summary;
     ceres::Solve(options, &problem, &summary);
@@ -134,12 +153,13 @@ bool BundleAdjustment::solveBA()
     return 1;
 }
 
-bool BundleAdjustment::doSFMBA(std::vector<frame_t> &frames, std::vector<bool> &process_frame_id, pointcloud_sparse_t &sfm_sparse_points)
+bool BundleAdjustment::doSFMBA(std::vector<frame_t> &frames, std::vector<bool> &process_frame_id,
+                               pointcloud_sparse_t &sfm_sparse_points, int reference_frame_id)
 {
     std::chrono::steady_clock::time_point tic = std::chrono::steady_clock::now();
 
     initBA();
-    setBAProblem(frames, process_frame_id, sfm_sparse_points);
+    setBAProblem(frames, process_frame_id, sfm_sparse_points, reference_frame_id);
     solveBA();
 
     //update the data

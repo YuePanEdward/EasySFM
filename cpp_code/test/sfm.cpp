@@ -216,7 +216,6 @@ int main(int argc, char **argv)
                     ee.doTriangulation(frames[i], frames[next_frame], img_match_graph[i][next_frame].matches, sfm_sparse_points, 0);
             }
         }
-        //ba.doBA();
 
         frames_to_process[next_frame] = 0;
         frames_to_process_count--;
@@ -231,7 +230,7 @@ int main(int argc, char **argv)
     io.writePlyFile(output_file, sfm_sparse_points.rgb_pointcloud);
 
     // Do BA
-    ba.doSFMBA(frames, frames_to_process, sfm_sparse_points);
+    ba.doSFMBA(frames, frames_to_process, sfm_sparse_points, init_frame_1);
 
     // Result of BA
     io.displaySFM(frames, frames_to_process, sfm_sparse_points, "SfM Result with BA", 0);

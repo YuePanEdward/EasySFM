@@ -57,21 +57,21 @@ public:
     std::vector<int>().swap(camera_index_);
     std::vector<cv::Point2f>().swap(points_2d_);
     std::vector<Eigen::Matrix3f>().swap(calibs_);
-    num_cameras_=0;
-    num_points_=0;
-    num_parameters_=0;
-    num_observations_=0;
+    num_cameras_ = 0;
+    num_points_ = 0;
+    num_parameters_ = 0;
+    num_observations_ = -1;
     std::cout << "Bundle Ajustment initialization done." << std::endl;
   }
 
-  bool setBAProblem(std::vector<frame_t> &frames, std::vector<bool> &frame_id, pointcloud_sparse_t &sfm_sparse_points);
+  bool setBAProblem(std::vector<frame_t> &frames, std::vector<bool> &frame_id, pointcloud_sparse_t &sfm_sparse_points, int reference_frame_id);
 
   bool setBASolver();
 
   bool solveBA();
-  
+
   // main function
-  bool doSFMBA(std::vector<frame_t> &frames, std::vector<bool> &frame_id, pointcloud_sparse_t &sfm_sparse_points);
+  bool doSFMBA(std::vector<frame_t> &frames, std::vector<bool> &frame_id, pointcloud_sparse_t &sfm_sparse_points, int reference_frame_id = -1);
 
 private:
   int num_cameras_;
@@ -87,6 +87,8 @@ private:
 
   std::vector<cv::Point2f> points_2d_;
   std::vector<Eigen::Matrix3f> calibs_;
+
+  int ref_process_camera_id_;
 };
 
 class ReprojectErrorTerm
