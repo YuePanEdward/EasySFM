@@ -23,6 +23,9 @@ public:
                        const std::vector<cv::DMatch> &matches,
                        pointcloud_sparse_t &sparse_pointcloud, bool show = true);
 
+  bool getDepthFast(frame_t &cur_frame_1, frame_t &cur_frame_2, Eigen::Matrix4f &T_21,
+                    const std::vector<cv::DMatch> &matches, double &appro_depth, int random_rate = 10);
+
   bool estimate2D3D_P3P_RANSAC(frame_t &cur_frame, pointcloud_sparse_t &cur_map_3d,
                                int iterationsCount = 5000, double ransac_prob = 0.99, double ransac_thre = 1.0, bool show = true);
 

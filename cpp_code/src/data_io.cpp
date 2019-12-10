@@ -88,7 +88,7 @@ bool DataIO::writePcdFile(const std::string &fileName, pcl::PointCloud<pcl::Poin
 bool DataIO::writePlyFile(const std::string &fileName, pcl::PointCloud<pcl::PointXYZRGB>::Ptr &pointCloud)
 {
 	std::chrono::steady_clock::time_point tic = std::chrono::steady_clock::now();
-	
+
 	pointCloud->width = 1;
 	pointCloud->height = pointCloud->points.size();
 
@@ -224,7 +224,8 @@ bool DataIO::displaySFM(std::vector<frame_t> &frames, std::vector<bool> &frames_
 		}
 		//std::cout << "Add Camera " << i << " done." << std::endl;
 	}
-
+    
+	double show_coor_thre=100;
 	// Draw point cloud
 	for (int i = 0; i < sparse_pointcloud.rgb_pointcloud->points.size(); i++)
 	{
@@ -235,7 +236,8 @@ bool DataIO::displaySFM(std::vector<frame_t> &frames, std::vector<bool> &frames_
 		ptc_temp.z = sparse_pointcloud.rgb_pointcloud->points[i].z;
 
 		sprintf(sparse_point, "SP_%03u", i);
-		viewer->addSphere(ptc_temp, point_size, sparse_pointcloud.rgb_pointcloud->points[i].r / 255.0, sparse_pointcloud.rgb_pointcloud->points[i].g / 255.0, sparse_pointcloud.rgb_pointcloud->points[i].b / 255.0, sparse_point);
+		if (std::abs(ptc_temp.x) < show_coor_thre && std::abs(ptc_temp.y) < show_coor_thre && std::abs(ptc_temp.z) < show_coor_thre)
+			viewer->addSphere(ptc_temp, point_size, sparse_pointcloud.rgb_pointcloud->points[i].r / 255.0, sparse_pointcloud.rgb_pointcloud->points[i].g / 255.0, sparse_pointcloud.rgb_pointcloud->points[i].b / 255.0, sparse_point);
 	}
 
 	//viewer->addPointCloud(sparse_pointcloud.rgb_pointcloud, "sparsepointcloud");

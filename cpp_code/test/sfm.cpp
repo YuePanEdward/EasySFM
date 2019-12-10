@@ -29,7 +29,7 @@ int main(int argc, char **argv)
     ifstream image_list_file(image_list_path.c_str(), std::ios::in);
     if (!image_list_file.is_open())
     {
-        cout << "open lidar_file_list failed, file is: " << image_list_path;
+        std::cout << "open lidar_file_list failed, file is: " << image_list_path << std::endl;
     }
 
     int count = 0;
@@ -37,11 +37,14 @@ int main(int argc, char **argv)
     {
         string cur_file;
         image_list_file >> cur_file;
-        cur_file = image_data_path + "/" + cur_file;
-        frame_t cur_frame(count, cur_file);
-        frames.push_back(cur_frame);
-        cout << cur_file << endl;
-        count++;
+        if (!cur_file.empty())
+        {
+            cur_file = image_data_path + "/" + cur_file;
+            frame_t cur_frame(count, cur_file);
+            frames.push_back(cur_frame);
+            cout << cur_file << endl;
+            count++;
+        }
     }
 
     int frame_number = frames.size();
@@ -54,7 +57,7 @@ int main(int argc, char **argv)
     FeatureMatching fm;
     MotionEstimator ee;
 
-    vector<vector<frame_pair_t>> img_match_graph;
+    std::vector<std::vector<frame_pair_t>> img_match_graph;
 
     pointcloud_sparse_t sfm_sparse_points;
     //sfm_sparse_points.rgb_pointcloud=pcl::PointCloud<pcl::PointXYZRGB>::Ptr();
@@ -70,6 +73,15 @@ int main(int argc, char **argv)
         //Set K
         frames[i].K_cam = K_mat;
 
+        if (i == 0)
+        {
+            std::cout << "Import calibration data done" << std::endl;
+            std::cout << "K Matrix:\n"
+                      << frames[i].K_cam << std::endl;
+        }
+
+        std::cout << "Feature extraction of Frame [ " << i << " ]" << std::endl;
+
         //Detect keypoints and extract feature
         switch (using_feature)
         {
@@ -80,16 +92,16 @@ int main(int argc, char **argv)
             fm.detectFeaturesORB(frames[i], 0);
             break;
         default:
-            cout << "Wrong feature input. Use ORB as default feature." << endl;
+            std::cout << "Wrong feature input. Use ORB as default feature." << std::endl;
             fm.detectFeaturesORB(frames[i]);
         }
         keypoints_total_count += frames[i].keypoints.size();
         frames[i].init_pixel_ids();
     }
-    cout << "Feature extraction done" << endl;
+    std::cout << "Feature extraction done" << std::endl;
 
     // Match feature points
-    cout << "Begin pairwise feature matching" << endl;
+    std::cout << "Begin pairwise feature matching" << std::endl;
 
     int num_min_pair = 15;
     int max_total_feature_num = keypoints_total_count;
@@ -105,14 +117,15 @@ int main(int argc, char **argv)
             std::vector<cv::DMatch> temp_matches;
             std::vector<cv::DMatch> inlier_matches;
             Eigen::Matrix4f T_mat = Eigen::Matrix4f::Identity();
+            double mean_depth = 1;
 
             switch (using_feature)
             {
             case 'S':
-                fm.matchFeaturesSURF(frames[i], frames[j], temp_matches, 0.75, 0);
+                fm.matchFeaturesSURF(frames[i], frames[j], temp_matches, 0.7, 0);
                 break;
             case 'O':
-                fm.matchFeaturesORB(frames[i], frames[j], temp_matches, 0.75, 0);
+                fm.matchFeaturesORB(frames[i], frames[j], temp_matches, 0.7, 0);
                 break;
             default:
                 cout << "Wrong feature input. Use ORB as default feature." << endl;
@@ -122,6 +135,7 @@ int main(int argc, char **argv)
             if (temp_matches.size() > num_min_pair)
             {
                 ee.estimate2D2D_E5P_RANSAC(frames[i], frames[j], temp_matches, inlier_matches, T_mat, 0.99, 1.0, 0);
+                ee.getDepthFast(frames[i], frames[j], T_mat, inlier_matches, mean_depth);
             }
 
             // Assign i frame's keypoints unique id by finding its correspondence in already labeled j frame
@@ -143,7 +157,7 @@ int main(int argc, char **argv)
                 }
             }
 
-            frame_pair_t temp_pair(i, j, inlier_matches, T_mat);
+            frame_pair_t temp_pair(i, j, inlier_matches, T_mat, mean_depth);
 
             temp_row_pairs.push_back(temp_pair);
 
@@ -172,7 +186,7 @@ int main(int argc, char **argv)
 
     //Find frame pair for initialization using feature track
     int init_frame_1, init_frame_2;
-    fm.findInitializeFramePair(feature_track_matrix, frames, init_frame_1, init_frame_2);
+    fm.findInitializeFramePair(feature_track_matrix, frames, img_match_graph, init_frame_1, init_frame_2);
 
     //SfM initialization
     frames[init_frame_1].pose_cam = Eigen::Matrix4f::Identity();
@@ -191,12 +205,15 @@ int main(int argc, char **argv)
 
     //BA of initialization
     BundleAdjustment ba;
-    //ba.doSfMBA(frames, frames_to_process, sfm_sparse_points);
+    ba.doSFMBA(frames, frames_to_process, sfm_sparse_points);
+    std::cout << "BA for initialization done" << std::endl;
+    io.displaySFM(frames, frames_to_process, sfm_sparse_points, "SfM Initialization with BA", 0);
 
     std::cout << "Now add the next view" << std::endl;
 
     //SfM adding view
     int frames_to_process_count = frames.size() - 2;
+    int frequency_BA=5; //frequency of doing BA.
     while (frames_to_process_count > 0)
     {
         int next_frame;
@@ -219,7 +236,11 @@ int main(int argc, char **argv)
 
         frames_to_process[next_frame] = 0;
         frames_to_process_count--;
+
+        if (frames_to_process_count % frequency_BA == 0)
+            ba.doSFMBA(frames, frames_to_process, sfm_sparse_points);
     }
+    
     cout << "Adding all the cameras done." << endl;
 
     // Display final result
@@ -230,7 +251,7 @@ int main(int argc, char **argv)
     io.writePlyFile(output_file, sfm_sparse_points.rgb_pointcloud);
 
     // Do BA
-    ba.doSFMBA(frames, frames_to_process, sfm_sparse_points, init_frame_1);
+    ba.doSFMBA(frames, frames_to_process, sfm_sparse_points);
 
     // Result of BA
     io.displaySFM(frames, frames_to_process, sfm_sparse_points, "SfM Result with BA", 0);

@@ -240,6 +240,55 @@ bool MotionEstimator::estimate2D3D_P3P_RANSAC(frame_t &cur_frame, pointcloud_spa
     return 1;
 }
 
+bool MotionEstimator::getDepthFast(frame_t &cur_frame_1, frame_t &cur_frame_2, Eigen::Matrix4f &T_21,
+                                   const std::vector<cv::DMatch> &matches, double &appro_depth, int random_rate)
+{
+    cv::Mat T1_mat;
+    cv::Mat T2_mat;
+    cv::Mat camera_mat;
+
+    Eigen::Matrix4f Teye = Eigen::Matrix4f::Identity();
+    Eigen::Matrix<float, 3, 4> T1 = Teye.block<3, 4>(0, 0);
+    Eigen::Matrix<float, 3, 4> T2 = (T_21 * Teye).block<3, 4>(0, 0);
+
+    cv::eigen2cv(cur_frame_1.K_cam, camera_mat);
+    cv::eigen2cv(T1, T1_mat);
+    cv::eigen2cv(T2, T2_mat);
+
+    std::vector<cv::Point2f> pointset1;
+    std::vector<cv::Point2f> pointset2;
+
+    for (int i = 0; i < matches.size(); i++)
+    {
+        if (i % random_rate == 0)
+        {
+            pointset1.push_back(pixel2cam(cur_frame_1.keypoints[matches[i].queryIdx].pt, camera_mat));
+            pointset2.push_back(pixel2cam(cur_frame_2.keypoints[matches[i].trainIdx].pt, camera_mat));
+        }
+    }
+
+    cv::Mat pts_3d_homo;
+    if (pointset1.size() > 0)
+        cv::triangulatePoints(T1_mat, T2_mat, pointset1, pointset2, pts_3d_homo);
+
+    // De-homo and calculate mean depth
+    double depth_sum = 0;
+    for (int i = 0; i < pts_3d_homo.cols; i++)
+    {
+        cv::Mat pts_3d = pts_3d_homo.col(i);
+
+        pts_3d /= pts_3d.at<float>(3, 0);
+
+        Eigen::Vector3f pt_temp;
+        pt_temp(0) = pts_3d.at<float>(0, 0);
+        pt_temp(1) = pts_3d.at<float>(1, 0);
+        pt_temp(2) = pts_3d.at<float>(2, 0);
+
+        depth_sum = depth_sum + pt_temp.norm();
+    }
+    appro_depth = depth_sum / pts_3d_homo.cols;
+}
+
 bool MotionEstimator::doTriangulation(frame_t &cur_frame_1, frame_t &cur_frame_2,
                                       const std::vector<cv::DMatch> &matches,
                                       pointcloud_sparse_t &sparse_pointcloud, bool show)
@@ -303,15 +352,17 @@ bool MotionEstimator::doTriangulation(frame_t &cur_frame_1, frame_t &cur_frame_2
         pt_temp.y = pts_3d.at<float>(1, 0);
         pt_temp.z = pts_3d.at<float>(2, 0);
 
+        // check here if(pt_temp.x> )
+
         cv::Point2f cur_key_pixel = cur_frame_1.keypoints[matches[i].queryIdx].pt;
 
         uchar blue = cur_frame_1.rgb_image.at<cv::Vec3b>(cur_key_pixel.y, cur_key_pixel.x)[0];
         uchar green = cur_frame_1.rgb_image.at<cv::Vec3b>(cur_key_pixel.y, cur_key_pixel.x)[1];
         uchar red = cur_frame_1.rgb_image.at<cv::Vec3b>(cur_key_pixel.y, cur_key_pixel.x)[2];
 
-        pt_temp.r = 1.0*red;
-        pt_temp.g = 1.0*green;
-        pt_temp.b = 1.0*blue;
+        pt_temp.r = 1.0 * red;
+        pt_temp.g = 1.0 * green;
+        pt_temp.b = 1.0 * blue;
         sparse_pointcloud.rgb_pointcloud->points.push_back(pt_temp);
     }
 
@@ -420,29 +471,29 @@ bool MotionEstimator::doTriangulation(frame_t &cur_frame_1, frame_t &cur_frame_2
 * \param[out] cloud_out : A pointer of the Point Cloud after transformation
 * \param[in]  trans : A 4*4 transformation matrix
 */
-bool MotionEstimator::transformCloud(pcl::PointCloud<pcl::PointXYZ>::Ptr & cloud_in,
-	pcl::PointCloud<pcl::PointXYZ>::Ptr & cloud_out,
-	Eigen::Matrix4f & trans)
+bool MotionEstimator::transformCloud(pcl::PointCloud<pcl::PointXYZ>::Ptr &cloud_in,
+                                     pcl::PointCloud<pcl::PointXYZ>::Ptr &cloud_out,
+                                     Eigen::Matrix4f &trans)
 {
-	Eigen::Matrix4Xf PC;
-	Eigen::Matrix4Xf TPC; 
-	PC.resize(4, cloud_in->size());
-	TPC.resize(4, cloud_in->size());
-	for (int i = 0; i < cloud_in->size(); i++)
-	{
-		PC(0,i)= cloud_in->points[i].x;
-		PC(1,i)= cloud_in->points[i].y;
-		PC(2,i)= cloud_in->points[i].z;
-		PC(3,i)= 1;
-	}
-	TPC = trans * PC;
-	for (int i = 0; i < cloud_in->size(); i++)
-	{
-		pcl::PointXYZ pt;
-		pt.x = TPC(0, i);
-		pt.y = TPC(1, i);
-		pt.z = TPC(2, i);
-		cloud_out->points.push_back(pt);
-	}
-	//cout << "Transform done ..." << endl;
+    Eigen::Matrix4Xf PC;
+    Eigen::Matrix4Xf TPC;
+    PC.resize(4, cloud_in->size());
+    TPC.resize(4, cloud_in->size());
+    for (int i = 0; i < cloud_in->size(); i++)
+    {
+        PC(0, i) = cloud_in->points[i].x;
+        PC(1, i) = cloud_in->points[i].y;
+        PC(2, i) = cloud_in->points[i].z;
+        PC(3, i) = 1;
+    }
+    TPC = trans * PC;
+    for (int i = 0; i < cloud_in->size(); i++)
+    {
+        pcl::PointXYZ pt;
+        pt.x = TPC(0, i);
+        pt.y = TPC(1, i);
+        pt.z = TPC(2, i);
+        cloud_out->points.push_back(pt);
+    }
+    //cout << "Transform done ..." << endl;
 }

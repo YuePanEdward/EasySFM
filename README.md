@@ -1,5 +1,5 @@
-# P3DV
-Structure-from-motion project for ETH P3DV ([Photogrammetry and 3D Vision](https://prs.igp.ethz.ch/)) course
+# EasySFM
+A simple Structure-from-motion project for ETH P3DV ([Photogrammetry and 3D Vision](https://prs.igp.ethz.ch/)) course
 
 ![alt text](assets/demo_expected.png)
 
@@ -25,6 +25,6 @@ make
 ```
 cd ..
 # Demo
-sh script/run.sh
+sh script/run_demo.sh
 # If you'd like to use your own data or change some vital parameters, configure the run.sh file
 ```

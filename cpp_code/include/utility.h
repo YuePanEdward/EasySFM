@@ -61,13 +61,16 @@ struct frame_pair_t
     std::vector<cv::DMatch> best_matches;
 
     Eigen::Matrix4f T_21;  
-
-    frame_pair_t(unsigned int i, unsigned int j, std::vector<cv::DMatch>& input_matches, Eigen::Matrix4f & T_mat_21)
+    
+    double appro_depth;
+    
+    frame_pair_t(unsigned int i, unsigned int j, std::vector<cv::DMatch>& input_matches, Eigen::Matrix4f & T_mat_21, double mean_depth)
     {
         frame_id_1=i;
         frame_id_2=j;
         matches.assign(input_matches.begin(),input_matches.end()); 
         T_21=T_mat_21;
+        appro_depth=mean_depth;
     }
 };
 

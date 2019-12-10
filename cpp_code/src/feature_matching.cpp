@@ -155,13 +155,14 @@ bool FeatureMatching::matchFeaturesSURF(frame_t &cur_frame_1, frame_t &cur_frame
 }
 
 bool FeatureMatching::findInitializeFramePair(std::vector<std::vector<bool>> &feature_track_matrix, std::vector<frame_t> &frames,
+                                              std::vector<std::vector<frame_pair_t>> img_match_graph,
                                               int &initialization_frame_1, int &initialization_frame_2)
 {
     std::chrono::steady_clock::time_point tic = std::chrono::steady_clock::now();
 
     int frame_number = frames.size();
-    int num_unique_points=feature_track_matrix[0].size();
-    
+    int num_unique_points = feature_track_matrix[0].size();
+
     //resize feature track matrix to frame_num * unique_point_num
     std::vector<int> point_track_frame_num(num_unique_points, 0);
     for (int i = 0; i < frame_number; i++)
@@ -175,12 +176,20 @@ bool FeatureMatching::findInitializeFramePair(std::vector<std::vector<bool>> &fe
 
     //Find frame pair for initialization
     int max_sum_track_frame_num = 0;
+    double baseline_length_over_depth_threshold = 0;
+    double init_baseline_length_over_depth_ratio;
 
     for (int i = 0; i < frame_number; i++)
     {
         for (int j = 0; j < i; j++)
         {
             int temp_sum_track_frame_num = 0;
+
+            double relative_baseline_length = img_match_graph[i][j].T_21.block<3, 1>(0, 3).norm();
+            double baseline_length_over_depth = relative_baseline_length / img_match_graph[i][j].appro_depth;
+            if (baseline_length_over_depth < baseline_length_over_depth_threshold) //Skip this loop since the baseline is too short.
+                continue;
+
             for (int k = 0; k < point_track_frame_num.size(); k++)
             {
                 if (feature_track_matrix[i][k] && feature_track_matrix[j][k])
@@ -191,12 +200,13 @@ bool FeatureMatching::findInitializeFramePair(std::vector<std::vector<bool>> &fe
             if (temp_sum_track_frame_num >= max_sum_track_frame_num)
             {
                 max_sum_track_frame_num = temp_sum_track_frame_num;
+                init_baseline_length_over_depth_ratio = baseline_length_over_depth;
                 initialization_frame_1 = i;
                 initialization_frame_2 = j;
             }
         }
     }
-    
+
     // for(int k=0; k<num_unique_points; k++)
     // {
     //     if(feature_track_matrix[initialization_frame_1][k] && feature_track_matrix[initialization_frame_2][k])
@@ -206,7 +216,8 @@ bool FeatureMatching::findInitializeFramePair(std::vector<std::vector<bool>> &fe
     std::chrono::steady_clock::time_point toc = std::chrono::steady_clock::now();
     std::chrono::duration<double> time_used = std::chrono::duration_cast<std::chrono::duration<double>>(toc - tic);
     std::cout << "Find initialization frame pair done in " << time_used.count() << " seconds. " << std::endl;
-    std::cout << "Frame " << initialization_frame_1 << " and Frame " << initialization_frame_2 << " with " << max_sum_track_frame_num << " trackings are set as the frame pair for initialization" << std::endl;
+    std::cout << "Frame " << initialization_frame_1 << " and Frame " << initialization_frame_2 << " with " << max_sum_track_frame_num << " trackings"<< std::endl;
+    std::cout << "The baseline over depth ratio is " <<init_baseline_length_over_depth_ratio<< " . They are set as the frame pair for initialization." << std::endl;
 }
 
 bool FeatureMatching::findNextFrame(std::vector<std::vector<bool>> &feature_track_matrix, std::vector<bool> &frames_to_process,
