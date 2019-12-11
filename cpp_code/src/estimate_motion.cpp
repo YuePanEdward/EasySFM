@@ -287,6 +287,8 @@ bool MotionEstimator::getDepthFast(frame_t &cur_frame_1, frame_t &cur_frame_2, E
         depth_sum = depth_sum + pt_temp.norm();
     }
     appro_depth = depth_sum / pts_3d_homo.cols;
+
+    std::cout << "Mean relative depth is about " << appro_depth << " * baseline length. " << std::endl;
 }
 
 bool MotionEstimator::doTriangulation(frame_t &cur_frame_1, frame_t &cur_frame_2,
@@ -380,14 +382,6 @@ bool MotionEstimator::doTriangulation(frame_t &cur_frame_1, frame_t &cur_frame_2
         cv::imshow("Triangularization matches", match_image_pair);
         cv::waitKey(0);
 
-        // for (int i = 0; i < sparse_pointcloud.rgb_pointcloud->points.size(); i++)
-        // {
-        //     std::cout << sparse_pointcloud.unique_point_ids[i] << " : "
-        //               << sparse_pointcloud.rgb_pointcloud->points[i].x << " , "
-        //               << sparse_pointcloud.rgb_pointcloud->points[i].y << " , "
-        //               << sparse_pointcloud.rgb_pointcloud->points[i].z << std::endl;
-        // }
-
         boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer(new pcl::visualization::PCLVisualizer("Sfm Viewer"));
         viewer->setBackgroundColor(0, 0, 0);
 
@@ -396,48 +390,25 @@ bool MotionEstimator::doTriangulation(frame_t &cur_frame_1, frame_t &cur_frame_2
         std::string s;
         int n = 0;
         float frame_color_r, frame_color_g, frame_color_b;
-        float sphere_size = 0.05;
+        float sphere_size = 0.2;
         float line_size_cam = 0.4;
 
         pcl::PointXYZ pt_cam1(cur_frame_1.pose_cam(0, 3), cur_frame_1.pose_cam(1, 3), cur_frame_1.pose_cam(2, 3));
         pcl::PointXYZ pt_cam2(cur_frame_2.pose_cam(0, 3), cur_frame_2.pose_cam(1, 3), cur_frame_2.pose_cam(2, 3));
-        pcl::PointXYZ point_pt_cam1_x_axis(cur_frame_1.pose_cam(0, 3) + line_size_cam, cur_frame_1.pose_cam(1, 3), cur_frame_1.pose_cam(2, 3));
-        pcl::PointXYZ point_pt_cam1_y_axis(cur_frame_1.pose_cam(0, 3), cur_frame_1.pose_cam(1, 3) + line_size_cam, cur_frame_1.pose_cam(2, 3));
-        pcl::PointXYZ point_pt_cam1_z_axis(cur_frame_1.pose_cam(0, 3), cur_frame_1.pose_cam(1, 3), cur_frame_1.pose_cam(2, 3) + line_size_cam);
-        pcl::PointXYZ point_pt_cam2_x_axis(cur_frame_2.pose_cam(0, 3) + line_size_cam, cur_frame_2.pose_cam(1, 3), cur_frame_2.pose_cam(2, 3));
-        pcl::PointXYZ point_pt_cam2_y_axis(cur_frame_2.pose_cam(0, 3), cur_frame_2.pose_cam(1, 3) + line_size_cam, cur_frame_2.pose_cam(2, 3));
-        pcl::PointXYZ point_pt_cam2_z_axis(cur_frame_2.pose_cam(0, 3), cur_frame_2.pose_cam(1, 3), cur_frame_2.pose_cam(2, 3) + line_size_cam);
 
         sprintf(t, "%d", n);
         s = t;
-        viewer->addSphere(pt_cam1, sphere_size, 1.0, 1.0, 1.0, s);
+        viewer->addSphere(pt_cam1, sphere_size, 1.0, 0.0, 0.0, s);
         n++;
 
         sprintf(t, "%d", n);
         s = t;
-        viewer->addSphere(pt_cam2, sphere_size, 1.0, 1.0, 1.0, s);
+        viewer->addSphere(pt_cam2, sphere_size, 0.0, 0.0, 1.0, s);
         n++;
 
-        sprintf(t, "line1_%d", n);
+        sprintf(t, "%d", n);
         s = t;
-        viewer->addLine(pt_cam1, point_pt_cam1_x_axis, 1.0, 0.0, 0.0, s);
-        sprintf(t, "line2_%d", n);
-        s = t;
-        viewer->addLine(pt_cam1, point_pt_cam1_y_axis, 0.0, 1.0, 0.0, s);
-        sprintf(t, "line3_%d", n);
-        s = t;
-        viewer->addLine(pt_cam1, point_pt_cam1_z_axis, 0.0, 0.0, 1.0, s);
-        n++;
-
-        sprintf(t, "line1_%d", n);
-        s = t;
-        viewer->addLine(pt_cam2, point_pt_cam2_x_axis, 1.0, 0.0, 0.0, s);
-        sprintf(t, "line2_%d", n);
-        s = t;
-        viewer->addLine(pt_cam2, point_pt_cam2_y_axis, 0.0, 1.0, 0.0, s);
-        sprintf(t, "line3_%d", n);
-        s = t;
-        viewer->addLine(pt_cam2, point_pt_cam2_z_axis, 0.0, 0.0, 1.0, s);
+        viewer->addLine(pt_cam1, pt_cam2, 0.0, 1.0, 0.0, s);
         n++;
 
         // for (int i = 0; i < sparse_pointcloud->points.size(); i++)

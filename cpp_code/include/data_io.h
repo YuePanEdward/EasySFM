@@ -22,8 +22,6 @@ public:
 
   bool writeTxtFile(const std::string &fileName, pcl::PointCloud<pcl::PointXYZRGB>::Ptr &pointCloud);
 
-  bool displaySFM(std::vector<frame_t> &frames, std::vector<bool> &frames_to_process,
-                  pointcloud_sparse_t &sparse_pointcloud, std::string viewer_name = "SfM viewer", bool black_background = 1);
 };
 } // namespace p3dv
 #endif
