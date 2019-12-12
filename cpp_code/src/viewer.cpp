@@ -282,3 +282,12 @@ bool MapViewer::displaySFM_on_fly(boost::shared_ptr<pcl::visualization::PCLVisua
     viewer->spinOnce(display_time_ms);
     boost::this_thread::sleep(boost::posix_time::microseconds(10000));
 }
+
+bool MapViewer::displayFrame(frame_t &cur_frame, std::string viewer_name, int time_delay_ms)
+{
+    cv::Mat feature_image;
+    cv::namedWindow(viewer_name, 0);
+    cv::drawKeypoints(cur_frame.rgb_image, cur_frame.keypoints, feature_image, cv::Scalar::all(-1), cv::DrawMatchesFlags::DEFAULT);
+    cv::imshow(viewer_name, feature_image);
+    cv::waitKey(time_delay_ms);
+}

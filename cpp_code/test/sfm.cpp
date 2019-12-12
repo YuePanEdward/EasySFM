@@ -205,18 +205,20 @@ int main(int argc, char **argv)
     int init_frame_1, init_frame_2;
     double depth_init; // initial frame pair's relative depth
     fm.findInitializeFramePair(feature_track_matrix, frames, img_match_graph, init_frame_1, init_frame_2, depth_init);
-
+   
     //SfM initialization
     frames[init_frame_1].pose_cam = Eigen::Matrix4f::Identity();
     std::cout << "Frame [" << init_frame_1 << "] 's pose: " << std::endl
               << frames[init_frame_1].pose_cam << std::endl;
+    mv.displayFrame(frames[init_frame_1]);
 
     frames[init_frame_2].pose_cam = img_match_graph[init_frame_1][init_frame_2].T_21 * frames[init_frame_1].pose_cam;
     std::cout << "Frame [" << init_frame_2 << "] 's pose: " << std::endl
               << frames[init_frame_2].pose_cam << std::endl;
+    mv.displayFrame(frames[init_frame_2]);
 
-    ee.doTriangulation(frames[init_frame_1], frames[init_frame_2], img_match_graph[init_frame_1][init_frame_2].matches, sfm_sparse_points);
-
+    ee.doTriangulation(frames[init_frame_1], frames[init_frame_2], img_match_graph[init_frame_1][init_frame_2].matches, sfm_sparse_points, 0);
+    
     std::vector<bool> frames_to_process(frames.size(), 1);
     frames_to_process[init_frame_1] = 0;
     frames_to_process[init_frame_2] = 0;
@@ -242,7 +244,8 @@ int main(int argc, char **argv)
         int next_frame;
 
         fm.findNextFrame(feature_track_matrix, frames_to_process, sfm_sparse_points.unique_point_ids, next_frame);
-        ee.estimate2D3D_P3P_RANSAC(frames[next_frame], sfm_sparse_points);
+        bool pnp_success = ee.estimate2D3D_P3P_RANSAC(frames[next_frame], sfm_sparse_points);
+
         cout << "Frame [" << next_frame << "] 's pose: " << endl
              << frames[next_frame].pose_cam << endl;
 
@@ -251,15 +254,16 @@ int main(int argc, char **argv)
             if (!frames_to_process[i])
             {
                 if (next_frame > i) // frame 1 id should larger than frame 2 id
-                    ee.doTriangulation(frames[next_frame], frames[i], img_match_graph[next_frame][i].matches, sfm_sparse_points);
+                    ee.doTriangulation(frames[next_frame], frames[i], img_match_graph[next_frame][i].matches, sfm_sparse_points, !pnp_success);
                 else
-                    ee.doTriangulation(frames[i], frames[next_frame], img_match_graph[i][next_frame].matches, sfm_sparse_points);
+                    ee.doTriangulation(frames[i], frames[next_frame], img_match_graph[i][next_frame].matches, sfm_sparse_points, !pnp_success);
             }
         }
 
         frames_to_process[next_frame] = 0;
         frames_to_process_count--;
-
+        
+        mv.displayFrame(frames[next_frame]);
         mv.displaySFM_on_fly(sfm_viewer, frames, frames_to_process, sfm_sparse_points);
 
         if (frames_to_process_count % frequency_BA == 0)
@@ -276,8 +280,9 @@ int main(int argc, char **argv)
     ba.doSFMBA(frames, frames_to_process, sfm_sparse_points);
     std::cout << "Final BA done." << std::endl;
     mv.displaySFM_on_fly(sfm_viewer, frames, frames_to_process, sfm_sparse_points, depth_init, 1000000);
+   
     //mv.displaySFM(frames, frames_to_process, sfm_sparse_points, "SfM Result with BA", 0);
-    
+
     // Filter the final point cloud
     CProceesing<pcl::PointXYZRGB> cp;
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr output_pointcloud(new pcl::PointCloud<pcl::PointXYZRGB>);

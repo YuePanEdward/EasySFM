@@ -21,18 +21,20 @@ public:
 
   bool doTriangulation(frame_t &cur_frame_1, frame_t &cur_frame_2,
                        const std::vector<cv::DMatch> &matches,
-                       pointcloud_sparse_t &sparse_pointcloud, bool show = false);
+                       pointcloud_sparse_t &sparse_pointcloud, bool filter_outlier = true, bool show = false);
 
   bool getDepthFast(frame_t &cur_frame_1, frame_t &cur_frame_2, Eigen::Matrix4f &T_21,
                     const std::vector<cv::DMatch> &matches, double &appro_depth, int random_rate = 10);
 
   bool estimate2D3D_P3P_RANSAC(frame_t &cur_frame, pointcloud_sparse_t &cur_map_3d,
-                               int iterationsCount = 30000, double ransac_prob = 0.99, double ransac_thre = 1.0, bool show = false);
+                               int iterationsCount = 30000, double ransac_prob = 0.99, double ransac_thre = 2.5, bool show = false);
 
   bool transformCloud(pcl::PointCloud<pcl::PointXYZ>::Ptr &cloud_in, pcl::PointCloud<pcl::PointXYZ>::Ptr &cloud_out,
                       Eigen::Matrix4f &trans);
 
   bool doUnDistort(frame_t &cur_frame, cv::Mat distort_coeff);
+
+  bool outlierFilter(pointcloud_sparse_t &sparse_pointcloud, int MeanK = 40, double std = 2.5);
 
 private:
   //transform pixel to camera space coordiante system

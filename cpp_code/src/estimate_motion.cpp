@@ -14,6 +14,8 @@
 #include <pcl/point_types.h>
 #include <pcl/visualization/common/common.h>
 #include <pcl/visualization/pcl_visualizer.h>
+#include <pcl/filters/extract_indices.h>
+#include <pcl/filters/statistical_outlier_removal.h>
 
 #include <chrono>
 #include <iostream>
@@ -21,44 +23,6 @@
 #include "estimate_motion.h"
 
 using namespace p3dv;
-
-bool MotionEstimator::estimateE8Points(std::vector<cv::KeyPoint> &keypoints1,
-                                       std::vector<cv::KeyPoint> &keypoints2,
-                                       std::vector<cv::DMatch> &matches,
-                                       Eigen::Matrix3f &K,
-                                       Eigen::Matrix4f &T)
-{
-    // std::vector<cv::Point2f> pointset1;
-    // std::vector<cv::Point2f> pointset2;
-
-    // for (int i = 0; i < (int)matches.size(); i++)
-    // {
-    //     pointset1.push_back(keypoints1[matches[i].queryIdx].pt);
-    //     pointset2.push_back(keypoints2[matches[i].trainIdx].pt);
-    // }
-
-    // cv::Point2d principal_point(K(0,2), K(1,2));
-    // double focal_length = (K(0,0)+K(1,1))*0.5;
-    // cv::Mat essential_matrix;
-    // essential_matrix = cv::findEssentialMat(pointset1, pointset2, focal_length, principal_point);
-    // std::cout << "essential_matrix is " << std::endl << essential_matrix << std::endl;
-
-    // cv::Mat R;
-    // cv::Mat t;
-
-    // cv::recoverPose(essential_matrix, pointset1, pointset2, R, t, focal_length, principal_point);
-
-    // Eigen::Matrix3f R_eigen;
-    // Eigen::Vector3f t_eigen;
-    // cv::cv2eigen(R,R_eigen);
-    // cv::cv2eigen(t,t_eigen);
-    // T.block(0,0,3,3)=R_eigen;
-    // T.block(0,3,3,1)=t_eigen;
-    // T(3,0)=0;T(3,1)=0;T(3,2)=0;T(3,3)=1;
-
-    // std::cout << "Transform is " << std::endl
-    //      << T << std::endl;
-}
 
 bool MotionEstimator::estimate2D2D_E5P_RANSAC(frame_t &cur_frame_1, frame_t &cur_frame_2,
                                               std::vector<cv::DMatch> &matches, std::vector<cv::DMatch> &inlier_matches,
@@ -123,7 +87,7 @@ bool MotionEstimator::estimate2D2D_E5P_RANSAC(frame_t &cur_frame_1, frame_t &cur
     if (show)
     {
         cv::Mat ransac_match_image;
-        cv::namedWindow("RANSAC inlier matches",0);
+        cv::namedWindow("RANSAC inlier matches", 0);
         cv::drawMatches(cur_frame_1.rgb_image, cur_frame_1.keypoints, cur_frame_2.rgb_image, cur_frame_2.keypoints, inlier_matches, ransac_match_image);
         cv::imshow("RANSAC inlier matches", ransac_match_image);
         cv::waitKey(0);
@@ -239,7 +203,13 @@ bool MotionEstimator::estimate2D3D_P3P_RANSAC(frame_t &cur_frame, pointcloud_spa
     std::chrono::duration<double> time_used = std::chrono::duration_cast<std::chrono::duration<double>>(toc - tic);
     std::cout << "Estimate Motion [3D-2D] cost = " << time_used.count() << " seconds. " << std::endl;
 
-    return 1;
+    if (reproj_err > 5) // mean reprojection error is too big (may be some problem)
+    {
+        std::cout << "[Warning] pnp may encounter some problem, the inlier ratio is [ " << 1.0 * inliers.rows / count * 100 << " % ], the mean reprojection error is [ " << reproj_err << " ]." << std::endl;
+        return 0;
+    }
+    else
+        return 1;
 }
 
 bool MotionEstimator::getDepthFast(frame_t &cur_frame_1, frame_t &cur_frame_2, Eigen::Matrix4f &T_21,
@@ -295,7 +265,7 @@ bool MotionEstimator::getDepthFast(frame_t &cur_frame_1, frame_t &cur_frame_2, E
 
 bool MotionEstimator::doTriangulation(frame_t &cur_frame_1, frame_t &cur_frame_2,
                                       const std::vector<cv::DMatch> &matches,
-                                      pointcloud_sparse_t &sparse_pointcloud, bool show)
+                                      pointcloud_sparse_t &sparse_pointcloud, bool filter_outlier, bool show)
 {
     std::chrono::steady_clock::time_point tic = std::chrono::steady_clock::now();
 
@@ -376,6 +346,9 @@ bool MotionEstimator::doTriangulation(frame_t &cur_frame_1, frame_t &cur_frame_2
     std::chrono::duration<double> time_used = std::chrono::duration_cast<std::chrono::duration<double>>(toc - tic);
     std::cout << "Triangularization done in " << time_used.count() << " seconds. " << std::endl;
 
+    if (filter_outlier)
+        outlierFilter(sparse_pointcloud);
+
     if (show)
     {
         // Show 2D image pair and correspondences
@@ -441,10 +414,10 @@ bool MotionEstimator::doTriangulation(frame_t &cur_frame_1, frame_t &cur_frame_2
 bool MotionEstimator::doUnDistort(frame_t &cur_frame, cv::Mat distort_coeff)
 {
     cv::Mat camera_mat;
-    cv::eigen2cv(cur_frame.K_cam,camera_mat);
+    cv::eigen2cv(cur_frame.K_cam, camera_mat);
     cv::Mat undistorted_img;
     cv::undistort(cur_frame.rgb_image, undistorted_img, camera_mat, distort_coeff);
-    cur_frame.rgb_image=undistorted_img;
+    cur_frame.rgb_image = undistorted_img;
 
     std::cout << "Undistort the image done." << std::endl;
     return true;
@@ -483,4 +456,74 @@ bool MotionEstimator::transformCloud(pcl::PointCloud<pcl::PointXYZ>::Ptr &cloud_
     //cout << "Transform done ..." << endl;
 }
 
+bool MotionEstimator::outlierFilter(pointcloud_sparse_t &sparse_pointcloud, int MeanK, double std)
+{
+    // Create the filtering object
+    pcl::StatisticalOutlierRemoval<pcl::PointXYZRGB> sor;
 
+    std::vector<int> filtered_indice;
+
+    sor.setInputCloud(sparse_pointcloud.rgb_pointcloud);
+    sor.setMeanK(MeanK);         //50
+    sor.setStddevMulThresh(std); //1.0
+    sor.filter(filtered_indice);
+
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr output_pointcloud(new pcl::PointCloud<pcl::PointXYZRGB>);
+    std::vector<int> output_unique_points_id;
+    for (int i = 0; i < filtered_indice.size(); i++)
+    {
+        output_pointcloud->points.push_back(sparse_pointcloud.rgb_pointcloud->points[filtered_indice[i]]);
+        output_unique_points_id.push_back(sparse_pointcloud.unique_point_ids[filtered_indice[i]]);
+    }
+
+    std::cout << "apply outlier filter: [ " << sparse_pointcloud.unique_point_ids.size() << " ] points before filtering, [ " << filtered_indice.size() << " ] points after filtering." << std::endl;
+
+    sparse_pointcloud.rgb_pointcloud->points.swap(output_pointcloud->points);
+    sparse_pointcloud.unique_point_ids.swap(output_unique_points_id);
+
+    return 1;
+}
+
+bool MotionEstimator::estimateE8Points(std::vector<cv::KeyPoint> &keypoints1,
+                                       std::vector<cv::KeyPoint> &keypoints2,
+                                       std::vector<cv::DMatch> &matches,
+                                       Eigen::Matrix3f &K,
+                                       Eigen::Matrix4f &T)
+{
+#if 0
+    std::vector<cv::Point2f> pointset1;
+    std::vector<cv::Point2f> pointset2;
+
+    for (int i = 0; i < (int)matches.size(); i++)
+    {
+        pointset1.push_back(keypoints1[matches[i].queryIdx].pt);
+        pointset2.push_back(keypoints2[matches[i].trainIdx].pt);
+    }
+
+    cv::Point2d principal_point(K(0, 2), K(1, 2));
+    double focal_length = (K(0, 0) + K(1, 1)) * 0.5;
+    cv::Mat essential_matrix;
+    essential_matrix = cv::findEssentialMat(pointset1, pointset2, focal_length, principal_point);
+    std::cout << "essential_matrix is " << std::endl
+              << essential_matrix << std::endl;
+
+    cv::Mat R;
+    cv::Mat t;
+
+    cv::recoverPose(essential_matrix, pointset1, pointset2, R, t, focal_length, principal_point);
+
+    Eigen::Matrix3f R_eigen;
+    Eigen::Vector3f t_eigen;
+    cv::cv2eigen(R, R_eigen);
+    cv::cv2eigen(t, t_eigen);
+    T.block(0, 0, 3, 3) = R_eigen;
+    T.block(0, 3, 3, 1) = t_eigen;
+    T(3, 0) = 0;
+    T(3, 1) = 0;
+    T(3, 2) = 0;
+    T(3, 3) = 1;
+
+    std::cout << "Transform is " << std::endl
+              << T << std::endl;
+#endif
+}
