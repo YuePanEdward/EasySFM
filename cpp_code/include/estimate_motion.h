@@ -27,10 +27,12 @@ public:
                     const std::vector<cv::DMatch> &matches, double &appro_depth, int random_rate = 10);
 
   bool estimate2D3D_P3P_RANSAC(frame_t &cur_frame, pointcloud_sparse_t &cur_map_3d,
-                               int iterationsCount = 6000, double ransac_prob = 0.99, double ransac_thre = 1.0, bool show = false);
+                               int iterationsCount = 30000, double ransac_prob = 0.99, double ransac_thre = 1.0, bool show = false);
 
   bool transformCloud(pcl::PointCloud<pcl::PointXYZ>::Ptr &cloud_in, pcl::PointCloud<pcl::PointXYZ>::Ptr &cloud_out,
                       Eigen::Matrix4f &trans);
+
+  bool doUnDistort(frame_t &cur_frame, cv::Mat distort_coeff);
 
 private:
   //transform pixel to camera space coordiante system

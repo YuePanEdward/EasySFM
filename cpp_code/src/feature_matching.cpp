@@ -11,13 +11,10 @@
 
 using namespace p3dv;
 
-bool FeatureMatching::detectFeaturesORB(frame_t &cur_frame, bool show)
+bool FeatureMatching::detectFeaturesORB(frame_t &cur_frame, int max_num, bool show)
 {
-    cv::Ptr<cv::FeatureDetector> detector = cv::ORB::create();
-    cv::Ptr<cv::DescriptorExtractor> descriptor = cv::ORB::create();
-
-    // cv::Ptr<cv::FeatureDetector> detector = cv::FeatureDetector::create("ORB");
-    // cv::Ptr<cv::DescriptorExtractor> descriptor = cv::DescriptorExtractor::create("ORB");
+    cv::Ptr<cv::FeatureDetector> detector = cv::ORB::create(max_num);
+    cv::Ptr<cv::DescriptorExtractor> descriptor = cv::ORB::create(max_num);
 
     std::chrono::steady_clock::time_point tic = std::chrono::steady_clock::now();
     detector->detect(cur_frame.rgb_image, cur_frame.keypoints);
@@ -34,6 +31,7 @@ bool FeatureMatching::detectFeaturesORB(frame_t &cur_frame, bool show)
     if (show)
     {
         cv::Mat feature_image;
+        cv::namedWindow("ORB features",0);
         cv::drawKeypoints(cur_frame.rgb_image, cur_frame.keypoints, feature_image, cv::Scalar::all(-1), cv::DrawMatchesFlags::DEFAULT);
         cv::imshow("ORB features", feature_image);
         cv::waitKey(0); // Wait for a keystroke in the window
@@ -61,6 +59,7 @@ bool FeatureMatching::detectFeaturesSURF(frame_t &cur_frame, int minHessian, boo
     if (show)
     {
         cv::Mat feature_image;
+        cv::namedWindow("SURF features",0);
         cv::drawKeypoints(cur_frame.rgb_image, cur_frame.keypoints, feature_image, cv::Scalar::all(-1), cv::DrawMatchesFlags::DEFAULT);
         cv::imshow("SURF features", feature_image);
         cv::waitKey(0); // Wait for a keystroke in the window
@@ -101,6 +100,8 @@ bool FeatureMatching::matchFeaturesORB(frame_t &cur_frame_1, frame_t &cur_frame_
     {
         cv::Mat initial_match_image;
         cv::Mat match_image;
+        cv::namedWindow("Initial matches",0);
+        cv::namedWindow("Filtered matches",0);
         cv::drawMatches(cur_frame_1.rgb_image, cur_frame_1.keypoints, cur_frame_2.rgb_image, cur_frame_2.keypoints, initial_matches, initial_match_image);
         cv::drawMatches(cur_frame_1.rgb_image, cur_frame_1.keypoints, cur_frame_2.rgb_image, cur_frame_2.keypoints, matches, match_image);
         cv::imshow("Initial matches", initial_match_image);
@@ -144,6 +145,8 @@ bool FeatureMatching::matchFeaturesSURF(frame_t &cur_frame_1, frame_t &cur_frame
     {
         cv::Mat initial_match_image;
         cv::Mat match_image;
+        cv::namedWindow("Initial matches",0);
+        cv::namedWindow("Filtered matches",0);
         cv::drawMatches(cur_frame_1.rgb_image, cur_frame_1.keypoints, cur_frame_2.rgb_image, cur_frame_2.keypoints, initial_matches, initial_match_image);
         cv::drawMatches(cur_frame_1.rgb_image, cur_frame_1.keypoints, cur_frame_2.rgb_image, cur_frame_2.keypoints, matches, match_image);
         cv::imshow("Initial matches", initial_match_image);

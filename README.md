@@ -24,7 +24,8 @@ make
 3. Run
 ```
 cd ..
-# Demo
-sh script/run_demo.sh
-# If you'd like to use your own data or change some vital parameters, configure the run.sh file
+# Fountain Demo
+sh script/run_fountain_small.sh
+# If you'd like to use your own data or change some vital parameters, configure the run_xxx.sh file
+# You can download some datasets from [SFM Datasets](https://onedrive.live.com/?authkey=%21AAQumsDDwZBIW3w&id=C58A258D760E1B58%2146879&cid=C58A258D760E1B58)
 ```

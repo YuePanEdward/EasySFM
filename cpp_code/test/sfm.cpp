@@ -10,7 +10,7 @@
 #include "estimate_motion.h"
 #include "ba.h"
 #include "viewer.h"
-
+#include "cloudprocessing.hpp"
 
 using namespace cv;
 using namespace std;
@@ -22,11 +22,15 @@ int main(int argc, char **argv)
     std::string image_data_path = argv[1];
     std::string image_list_path = argv[2];
     std::string calib_file_path = argv[3];
-    std::string output_file_path = argv[4];
-    std::string use_feature = argv[5];
-    std::string ba_frequency = argv[6];
+    std::string distort_file_path = argv[4];
+    std::string output_file_path = argv[5];
+    std::string use_feature = argv[6];
+    std::string ba_frequency = argv[7];
+    std::string view_sphere_or_not = argv[8];
 
-    char using_feature = use_feature.c_str()[0];
+    char using_feature = use_feature.c_str()[0]; //Use SURF (S) or ORB (O) feature
+    int frequency_BA = stoi(ba_frequency);       //frequency of doing BA.
+    bool view_sphere = stoi(view_sphere_or_not); //Render point cloud as sphere or just point
 
     std::vector<frame_t> frames;
 
@@ -52,15 +56,19 @@ int main(int argc, char **argv)
     }
 
     int frame_number = frames.size();
-    cout << "Frame number is " << frame_number << endl;
+    std::cout << "Frame number is " << frame_number << std::endl;
 
+    //Class used
     DataIO io;
-    Eigen::Matrix3f K_mat;
-    io.importCalib(calib_file_path, K_mat);
-
     FeatureMatching fm;
     MotionEstimator ee;
     MapViewer mv;
+
+    Eigen::Matrix3f K_mat;
+    cv::Mat distort_coeff = cv::Mat::zeros(1, 4, CV_64FC1);
+    io.importCalib(calib_file_path, K_mat);
+    if (!io.importDistort(distort_file_path, distort_coeff))
+        std::cout << "No distortion coefficients imported. Use defualt one (0)." << std::endl;
 
     std::vector<std::vector<frame_pair_t>> img_match_graph;
 
@@ -78,7 +86,8 @@ int main(int argc, char **argv)
         //Set K
         frames[i].K_cam = K_mat;
 
-        //Also import the distortion coefficient
+        //undistort the images
+        ee.doUnDistort(frames[i], distort_coeff);
 
         if (i == 0)
         {
@@ -148,7 +157,8 @@ int main(int argc, char **argv)
             // Assign i frame's keypoints unique id by finding its correspondence in already labeled j frame
             for (int k = 0; k < inlier_matches.size(); k++)
             {
-                if (frames[i].unique_pixel_ids[inlier_matches[k].queryIdx] < 0)
+                if (frames[i].unique_pixel_ids[inlier_matches[k].queryIdx] < 0 ||
+                    frames[i].unique_pixel_ids[inlier_matches[k].queryIdx] != frames[j].unique_pixel_ids[inlier_matches[k].trainIdx])
                 {
                     bool is_duplicated = 0;
                     for (int m = 0; m < frames[i].unique_pixel_ids.size(); m++) // check duplication
@@ -199,11 +209,11 @@ int main(int argc, char **argv)
     //SfM initialization
     frames[init_frame_1].pose_cam = Eigen::Matrix4f::Identity();
     std::cout << "Frame [" << init_frame_1 << "] 's pose: " << std::endl
-         << frames[init_frame_1].pose_cam << std::endl;
+              << frames[init_frame_1].pose_cam << std::endl;
 
     frames[init_frame_2].pose_cam = img_match_graph[init_frame_1][init_frame_2].T_21 * frames[init_frame_1].pose_cam;
     std::cout << "Frame [" << init_frame_2 << "] 's pose: " << std::endl
-         << frames[init_frame_2].pose_cam << std::endl;
+              << frames[init_frame_2].pose_cam << std::endl;
 
     ee.doTriangulation(frames[init_frame_1], frames[init_frame_2], img_match_graph[init_frame_1][init_frame_2].matches, sfm_sparse_points);
 
@@ -214,7 +224,7 @@ int main(int argc, char **argv)
     //Launch the on-fly viewer
     boost::shared_ptr<pcl::visualization::PCLVisualizer> sfm_viewer(new pcl::visualization::PCLVisualizer("EasySFM viewer"));
     sfm_viewer->setBackgroundColor(255, 255, 255);
-    mv.displaySFM_on_fly(sfm_viewer, frames, frames_to_process, sfm_sparse_points, depth_init, 3000);
+    mv.displaySFM_on_fly(sfm_viewer, frames, frames_to_process, sfm_sparse_points, depth_init, 3000, view_sphere);
 
     //BA of initialization
     BundleAdjustment ba;
@@ -227,7 +237,6 @@ int main(int argc, char **argv)
 
     //SfM adding view
     int frames_to_process_count = frames.size() - 2;
-    int frequency_BA = stoi(ba_frequency); //frequency of doing BA.
     while (frames_to_process_count > 0)
     {
         int next_frame;
@@ -257,7 +266,7 @@ int main(int argc, char **argv)
         {
             ba.doSFMBA(frames, frames_to_process, sfm_sparse_points);
             std::cout << "Temporal BA done." << std::endl;
-            mv.displaySFM_on_fly(sfm_viewer, frames, frames_to_process, sfm_sparse_points);
+            //mv.displaySFM_on_fly(sfm_viewer, frames, frames_to_process, sfm_sparse_points);
         }
     }
 
@@ -268,10 +277,15 @@ int main(int argc, char **argv)
     std::cout << "Final BA done." << std::endl;
     mv.displaySFM_on_fly(sfm_viewer, frames, frames_to_process, sfm_sparse_points, depth_init, 1000000);
     //mv.displaySFM(frames, frames_to_process, sfm_sparse_points, "SfM Result with BA", 0);
+    
+    // Filter the final point cloud
+    CProceesing<pcl::PointXYZRGB> cp;
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr output_pointcloud(new pcl::PointCloud<pcl::PointXYZRGB>);
+    cp.SORFilter(sfm_sparse_points.rgb_pointcloud, output_pointcloud);
 
     // Output the sparse point cloud with BA
     std::string output_file = output_file_path + "/sfm_sparse_point_cloud.ply";
-    io.writePlyFile(output_file, sfm_sparse_points.rgb_pointcloud);
+    io.writePlyFile(output_file, output_pointcloud);
 
     return 1;
 }

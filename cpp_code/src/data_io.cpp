@@ -47,7 +47,6 @@ bool DataIO::importCalib(const std::string &fileName, Eigen::Matrix3f &K_mat)
 	{
 		return false;
 	}
-	double a_ = 0, b_ = 0, c_ = 0;
 	int i = 0;
 	while (!in.eof())
 	{
@@ -61,6 +60,36 @@ bool DataIO::importCalib(const std::string &fileName, Eigen::Matrix3f &K_mat)
 	}
 	in.close();
 	std::cout << "Import camera calibration file done." << std::endl;
+	return true;
+}
+
+bool DataIO::importDistort(const std::string &fileName, cv::Mat &distort_coeff)
+{
+	std::ifstream in(fileName, std::ios::in);
+	if (!in)
+	{
+		return false;
+	}
+	int i = 0;
+	float k1, k2, p1, p2;
+	while (!in.eof())
+	{
+		if (i < 3)
+			in >> k1 >> k2 >> p1 >> p2;
+		if (in.fail())
+		{
+			break;
+		}
+		++i;
+	}
+	in.close();
+
+	distort_coeff.at<float>(0, 0) = k1;
+	distort_coeff.at<float>(0, 1) = k2;
+	distort_coeff.at<float>(0, 2) = p1;
+	distort_coeff.at<float>(0, 3) = p2;
+
+	std::cout << "Import camera distortion coefficients file done." << std::endl;
 	return true;
 }
 
@@ -130,4 +159,3 @@ bool DataIO::writeTxtFile(const std::string &fileName, pcl::PointCloud<pcl::Poin
 	std::cout << "Output done." << std::endl;
 	return 1;
 }
-

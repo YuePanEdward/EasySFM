@@ -16,6 +16,8 @@ public:
 
   bool importCalib(const std::string &fileName, Eigen::Matrix3f &K_mat);
 
+  bool importDistort(const std::string &fileName, cv::Mat &distort_coeff);
+
   bool writePcdFile(const std::string &fileName, pcl::PointCloud<pcl::PointXYZRGB>::Ptr &pointCloud);
 
   bool writePlyFile(const std::string &fileName, pcl::PointCloud<pcl::PointXYZRGB>::Ptr &pointCloud);

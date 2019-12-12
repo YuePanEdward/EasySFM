@@ -60,8 +60,9 @@ public:
     num_cameras_ = 0;
     num_points_ = 0;
     num_parameters_ = 0;
-    num_observations_ = -1;
-    std::cout << "Bundle Ajustment initialization done." << std::endl;
+    num_observations_ = 0;
+    ref_process_camera_id_=-1;
+    std::cout << "Bundle Ajustment parameters initialization done." << std::endl;
   }
 
   bool setBAProblem(std::vector<frame_t> &frames, std::vector<bool> &frame_id, pointcloud_sparse_t &sfm_sparse_points, int reference_frame_id);

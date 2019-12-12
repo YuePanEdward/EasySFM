@@ -7,6 +7,7 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/features2d/features2d.hpp>
 #include <opencv2/calib3d.hpp>
+#include <opencv2/imgproc.hpp>
 
 //PCL
 #include <pcl/point_cloud.h>
@@ -122,6 +123,7 @@ bool MotionEstimator::estimate2D2D_E5P_RANSAC(frame_t &cur_frame_1, frame_t &cur
     if (show)
     {
         cv::Mat ransac_match_image;
+        cv::namedWindow("RANSAC inlier matches",0);
         cv::drawMatches(cur_frame_1.rgb_image, cur_frame_1.keypoints, cur_frame_2.rgb_image, cur_frame_2.keypoints, inlier_matches, ransac_match_image);
         cv::imshow("RANSAC inlier matches", ransac_match_image);
         cv::waitKey(0);
@@ -436,6 +438,18 @@ bool MotionEstimator::doTriangulation(frame_t &cur_frame_1, frame_t &cur_frame_2
     return true;
 }
 
+bool MotionEstimator::doUnDistort(frame_t &cur_frame, cv::Mat distort_coeff)
+{
+    cv::Mat camera_mat;
+    cv::eigen2cv(cur_frame.K_cam,camera_mat);
+    cv::Mat undistorted_img;
+    cv::undistort(cur_frame.rgb_image, undistorted_img, camera_mat, distort_coeff);
+    cur_frame.rgb_image=undistorted_img;
+
+    std::cout << "Undistort the image done." << std::endl;
+    return true;
+}
+
 /**
 * \brief Transform a Point Cloud using a given transformation matrix
 * \param[in]  cloud_in : A pointer of the Point Cloud before transformation
@@ -468,3 +482,5 @@ bool MotionEstimator::transformCloud(pcl::PointCloud<pcl::PointXYZ>::Ptr &cloud_
     }
     //cout << "Transform done ..." << endl;
 }
+
+

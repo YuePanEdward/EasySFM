@@ -170,7 +170,6 @@ bool BundleAdjustment::doSFMBA(std::vector<frame_t> &frames, std::vector<bool> &
         if (!process_frame_id[i]) // 0 for processing
         {
             cv::Mat rot_vec = cv::Mat::ones(3, 1, CV_32F);
-            ;
             cv::Mat rot_Mat;
 
             Eigen::Matrix3f rot_Mat_eigen;
@@ -193,7 +192,7 @@ bool BundleAdjustment::doSFMBA(std::vector<frame_t> &frames, std::vector<bool> &
     }
 
     //update 3d points
-    int coord_thre = 50;
+    int coord_thre = 200;
     for (int i = 0; i < sfm_sparse_points.unique_point_ids.size(); i++)
     {
         if (std::abs(parameters_[6 * num_cameras_ + 3 * i]) < coord_thre &&
