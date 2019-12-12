@@ -24,10 +24,10 @@ public:
                        pointcloud_sparse_t &sparse_pointcloud, bool show = false);
 
   bool getDepthFast(frame_t &cur_frame_1, frame_t &cur_frame_2, Eigen::Matrix4f &T_21,
-                    const std::vector<cv::DMatch> &matches, double &appro_depth, int random_rate = 10);
+                    const std::vector<cv::DMatch> &matches, double &appro_depth, int random_rate = 20);
 
   bool estimate2D3D_P3P_RANSAC(frame_t &cur_frame, pointcloud_sparse_t &cur_map_3d,
-                               int iterationsCount = 30000, double ransac_prob = 0.99, double ransac_thre = 2.5, bool show = false);
+                               double ransac_thre = 2.5, int iterationsCount = 30000, double ransac_prob = 0.99, bool show = false);
 
   bool transformCloud(pcl::PointCloud<pcl::PointXYZ>::Ptr &cloud_in, pcl::PointCloud<pcl::PointXYZ>::Ptr &cloud_out,
                       Eigen::Matrix4f &trans);

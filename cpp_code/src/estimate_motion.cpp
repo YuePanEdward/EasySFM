@@ -96,8 +96,8 @@ bool MotionEstimator::estimate2D2D_E5P_RANSAC(frame_t &cur_frame_1, frame_t &cur
     return 1;
 }
 
-bool MotionEstimator::estimate2D3D_P3P_RANSAC(frame_t &cur_frame, pointcloud_sparse_t &cur_map_3d,
-                                              int iterationsCount, double ransac_prob, double ransac_thre, bool show)
+bool MotionEstimator::estimate2D3D_P3P_RANSAC(frame_t &cur_frame, pointcloud_sparse_t &cur_map_3d, double ransac_thre,
+                                              int iterationsCount, double ransac_prob, bool show)
 {
     std::chrono::steady_clock::time_point tic = std::chrono::steady_clock::now();
 
@@ -108,9 +108,10 @@ bool MotionEstimator::estimate2D3D_P3P_RANSAC(frame_t &cur_frame, pointcloud_spa
 
     std::vector<cv::Point2f> pointset2d;
     std::vector<cv::Point3f> pointset3d;
+    std::vector<int> pointset3d_index;
 
     int count = 0;
-    float dist_thre = 200;
+    float dist_thre = 300;
 
     std::cout << "2D points: " << cur_frame.unique_pixel_ids.size() << std::endl
               << "3D points: " << cur_map_3d.unique_point_ids.size() << std::endl;
@@ -129,13 +130,15 @@ bool MotionEstimator::estimate2D3D_P3P_RANSAC(frame_t &cur_frame, pointcloud_spa
                 float x_2d = cur_frame.keypoints[i].pt.x;
                 float y_2d = cur_frame.keypoints[i].pt.y;
 
-                if (x_3d < dist_thre && y_3d < dist_thre && z_3d < dist_thre)
+                if (std::abs(x_3d) < dist_thre && std::abs(y_3d) < dist_thre && std::abs(z_3d) < dist_thre)
                 {
                     // Assign value for pointset2d and pointset3d
                     pointset2d.push_back(cv::Point2f(x_2d, y_2d));
                     //pointset2d.push_back(pixel2cam(cur_frame.keypoints[i].pt, camera_mat));
 
                     pointset3d.push_back(cv::Point3f(x_3d, y_3d, z_3d));
+                    pointset3d_index.push_back(j);
+
                     count++;
                 }
                 //std::cout << "2D: " << cur_frame.unique_pixel_ids[i] << " " << cur_frame.keypoints[i].pt << std::endl;
@@ -159,6 +162,22 @@ bool MotionEstimator::estimate2D3D_P3P_RANSAC(frame_t &cur_frame, pointcloud_spa
     //cv::solvePnP(pointset3d, pointset2d, camera_mat, distort_para, r_vec, t_vec, false, cv::SOLVEPNP_EPNP);
 
     std::cout << "Inlier count: " << inliers.rows << std::endl;
+
+    std::vector<int> outlier;
+    for (int i = 0; i < inliers.rows; i++)
+    {
+        pointset3d_index[inliers.at<float>(i, 0)] = -1; // inlier 's index
+    }
+
+    for (int i = 0; i < pointset3d_index.size(); i++)
+    {
+        if (pointset3d_index[i] >= 0)
+            outlier.push_back(pointset3d_index[i]);
+    }
+    for (int i = 0; i < outlier.size(); i++)
+    {
+        cur_map_3d.is_inlier[outlier[i]] = 0;
+    }
 
     cv::Mat R_mat;
     cv::Rodrigues(r_vec, R_mat);
@@ -196,16 +215,16 @@ bool MotionEstimator::estimate2D3D_P3P_RANSAC(frame_t &cur_frame, pointcloud_spa
     }
 
     reproj_err /= proj_points.size();
-
+    double inlier_ratio = 1.0 * inliers.rows / count;
     std::cout << "Mean reprojection error: " << reproj_err << std::endl;
 
     std::chrono::steady_clock::time_point toc = std::chrono::steady_clock::now();
     std::chrono::duration<double> time_used = std::chrono::duration_cast<std::chrono::duration<double>>(toc - tic);
     std::cout << "Estimate Motion [3D-2D] cost = " << time_used.count() << " seconds. " << std::endl;
 
-    if (reproj_err > 10) // mean reprojection error is too big (may be some problem)
+    if (reproj_err > 10 && inlier_ratio < 0.5) // mean reprojection error is too big (may be some problem)
     {
-        std::cout << "[Warning] pnp may encounter some problem, the inlier ratio is [ " << 1.0 * inliers.rows / count * 100 << " % ], the mean reprojection error is [ " << reproj_err << " ]." << std::endl;
+        std::cout << "[Warning] pnp may encounter some problem, the inlier ratio is [ " << inlier_ratio * 100 << " % ], the mean reprojection error is [ " << reproj_err << " ]." << std::endl;
         return 0;
     }
     else
@@ -302,6 +321,7 @@ bool MotionEstimator::doTriangulation(frame_t &cur_frame_1, frame_t &cur_frame_2
         if (!already_in_world)
         {
             sparse_pointcloud.unique_point_ids.push_back(cur_frame_1.unique_pixel_ids[matches[i].queryIdx]);
+            sparse_pointcloud.is_inlier.push_back(1);
 
             pointset1.push_back(pixel2cam(cur_frame_1.keypoints[matches[i].queryIdx].pt, camera_mat));
             pointset2.push_back(pixel2cam(cur_frame_2.keypoints[matches[i].trainIdx].pt, camera_mat));
@@ -345,7 +365,6 @@ bool MotionEstimator::doTriangulation(frame_t &cur_frame_1, frame_t &cur_frame_2
     std::chrono::steady_clock::time_point toc = std::chrono::steady_clock::now();
     std::chrono::duration<double> time_used = std::chrono::duration_cast<std::chrono::duration<double>>(toc - tic);
     std::cout << "Triangularization done in " << time_used.count() << " seconds. " << std::endl;
-
 
     if (show)
     {
@@ -468,16 +487,19 @@ bool MotionEstimator::outlierFilter(pointcloud_sparse_t &sparse_pointcloud, int 
 
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr output_pointcloud(new pcl::PointCloud<pcl::PointXYZRGB>);
     std::vector<int> output_unique_points_id;
+    std::vector<int> output_is_inlier;
     for (int i = 0; i < filtered_indice.size(); i++)
     {
         output_pointcloud->points.push_back(sparse_pointcloud.rgb_pointcloud->points[filtered_indice[i]]);
         output_unique_points_id.push_back(sparse_pointcloud.unique_point_ids[filtered_indice[i]]);
+        output_is_inlier.push_back(sparse_pointcloud.is_inlier[filtered_indice[i]]);
     }
 
     std::cout << "apply outlier filter: [ " << sparse_pointcloud.unique_point_ids.size() << " ] points before filtering, [ " << filtered_indice.size() << " ] points after filtering." << std::endl;
 
     sparse_pointcloud.rgb_pointcloud->points.swap(output_pointcloud->points);
     sparse_pointcloud.unique_point_ids.swap(output_unique_points_id);
+    sparse_pointcloud.is_inlier.swap(output_is_inlier);
 
     return 1;
 }

@@ -26,7 +26,7 @@ bool BundleAdjustment::setBAProblem(std::vector<frame_t> &frames, std::vector<bo
             {
                 for (int k = 0; k < sfm_sparse_points.unique_point_ids.size(); k++)
                 {
-                    if (frames[i].unique_pixel_ids[j] == sfm_sparse_points.unique_point_ids[k])
+                    if (/*sfm_sparse_points.is_inlier[k] && */(frames[i].unique_pixel_ids[j] == sfm_sparse_points.unique_point_ids[k]))
                     {
                         //Set the none-changed observations
                         points_2d_.push_back(frames[i].keypoints[j].pt);
@@ -48,6 +48,8 @@ bool BundleAdjustment::setBAProblem(std::vector<frame_t> &frames, std::vector<bo
             num_cameras_++;
         }
     }
+    
+    std::cout<<"Find the observation done"<<std::endl;
 
     observations_ = new double[2 * num_observations_];
     num_parameters_ = 6 * num_cameras_ + 3 * num_points_;
@@ -80,6 +82,8 @@ bool BundleAdjustment::setBAProblem(std::vector<frame_t> &frames, std::vector<bo
             k++;
         }
     }
+    
+    std::cout<<"Set camera parameters inital value done"<<std::endl;
 
     for (int i = 0; i < sfm_sparse_points.unique_point_ids.size(); i++)
     {
@@ -87,6 +91,8 @@ bool BundleAdjustment::setBAProblem(std::vector<frame_t> &frames, std::vector<bo
         parameters_[6 * num_cameras_ + 3 * i + 1] = sfm_sparse_points.rgb_pointcloud->points[i].y;
         parameters_[6 * num_cameras_ + 3 * i + 2] = sfm_sparse_points.rgb_pointcloud->points[i].z;
     }
+    std::cout<<"Set points inital value done"<<std::endl;
+
 
     std::cout << "Find [ " << num_observations_ << " ] Observations in total." << std::endl;
     std::cout << "There are [ " << num_cameras_ << " ] cameras and [ " << num_points_ << " ] 3D points." << std::endl;

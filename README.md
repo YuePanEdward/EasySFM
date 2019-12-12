@@ -38,3 +38,17 @@ You can also download some datasets from [SFM Datasets (COLMAP)](https://onedriv
 More datasets are availiable at [Photogrammetry datasets](https://github.com/natowi/photogrammetry_datasets).
 
 You can also take some photo yourself and then calibrate them.
+
+The calibration file should have the following format:
+
+K.txt
+```
+f1 0 c1
+0 f2 c2
+0 0 1
+```
+
+distort.txt
+```
+k1 k2 p1 p2
+```

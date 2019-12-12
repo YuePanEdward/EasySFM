@@ -28,7 +28,8 @@ public:
 		sor.setMeanK(MeanK);				 //50
 		sor.setStddevMulThresh(std); //1.0
 		sor.filter(*outcloud);
-
+    
+		std::cout << "apply SOR filter: [ " << incloud->points.size() << " ] points before filtering, [ " << outcloud->points.size() << " ] points after filtering." << std::endl;
 		return 1;
 	}
 

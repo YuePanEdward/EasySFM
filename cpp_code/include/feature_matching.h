@@ -10,7 +10,7 @@ class FeatureMatching
 public:
   //FeatureMatching();
 
-  bool detectFeaturesORB(frame_t &cur_frame, int max_num = 3000, bool show = false);
+  bool detectFeaturesORB(frame_t &cur_frame, int max_num = 5000, bool show = false);
 
   bool detectFeaturesSURF(frame_t &cur_frame, int minHessian = 400, bool show = false);
 

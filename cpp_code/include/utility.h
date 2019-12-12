@@ -95,6 +95,8 @@ struct pointcloud_sparse_t
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr rgb_pointcloud;
     
     std::vector<int> unique_point_ids;
+    
+    std::vector<int> is_inlier;
 
     pointcloud_sparse_t()
     {

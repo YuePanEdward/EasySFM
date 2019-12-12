@@ -7,7 +7,7 @@ output_file=../test_data/output/sfm_sparse_point_cloud_personhall.ply;
 
 #processing parameters
 feature_type=S; # S for SURF an O for ORB
-ba_frequency=3; # Do Bundle Adjustment each X frame
+ba_frequency=5; # Do Bundle Adjustment each X frame
 
 #display parameters
 launch_viewer=1; # Open the real-time viewer

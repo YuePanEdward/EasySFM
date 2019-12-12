@@ -245,12 +245,15 @@ int main(int argc, char **argv)
 
     //SfM adding view
     int frames_to_process_count = frames.size() - 2;
+    float ransac_reproj_dist = 1.0;
     while (frames_to_process_count > 0)
     {
         int next_frame;
 
         fm.findNextFrame(feature_track_matrix, frames_to_process, sfm_sparse_points.unique_point_ids, next_frame);
-        bool pnp_success = ee.estimate2D3D_P3P_RANSAC(frames[next_frame], sfm_sparse_points);
+        bool pnp_success = ee.estimate2D3D_P3P_RANSAC(frames[next_frame], sfm_sparse_points, ransac_reproj_dist);
+
+        ransac_reproj_dist = ransac_reproj_dist + 1;
 
         cout << "Frame [" << next_frame << "] 's pose: " << endl
              << frames[next_frame].pose_cam << endl;
@@ -265,7 +268,8 @@ int main(int argc, char **argv)
                     ee.doTriangulation(frames[i], frames[next_frame], img_match_graph[i][next_frame].matches, sfm_sparse_points);
             }
         }
-        ee.outlierFilter(sfm_sparse_points, !pnp_success);
+        if (!pnp_success)
+            ee.outlierFilter(sfm_sparse_points);
 
         frames_to_process[next_frame] = 0;
         frames_to_process_count--;
@@ -282,6 +286,7 @@ int main(int argc, char **argv)
             std::cout << "Temporal BA done." << std::endl;
             // if (launch_viewer)
             //     mv.displaySFM_on_fly(sfm_viewer, frames, frames_to_process, sfm_sparse_points);
+            ransac_reproj_dist = 2.0;
         }
     }
 
