@@ -28,9 +28,9 @@ public:
   bool displaySFM_on_fly(boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer,
                          std::vector<frame_t> &frames, std::vector<bool> &frames_to_process,
                          pointcloud_sparse_t &sparse_pointcloud, double relative_depth = 5.0,
-                         int display_time_ms = 500, bool render_point_as_sphere = 0);
+                         int display_time_ms = 400, bool render_point_as_sphere = 0);
 
-  bool displayFrame(frame_t &cur_frame, std::string viewer_name= "Frame viewer", int time_delay_ms=200);
+  bool displayFrame(frame_t &cur_frame, std::string viewer_name= "Frame viewer", int time_delay_ms=100);
 
 private:
   bool is_frist_frame_ = 1;

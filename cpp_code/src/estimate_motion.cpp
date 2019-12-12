@@ -203,7 +203,7 @@ bool MotionEstimator::estimate2D3D_P3P_RANSAC(frame_t &cur_frame, pointcloud_spa
     std::chrono::duration<double> time_used = std::chrono::duration_cast<std::chrono::duration<double>>(toc - tic);
     std::cout << "Estimate Motion [3D-2D] cost = " << time_used.count() << " seconds. " << std::endl;
 
-    if (reproj_err > 5) // mean reprojection error is too big (may be some problem)
+    if (reproj_err > 10) // mean reprojection error is too big (may be some problem)
     {
         std::cout << "[Warning] pnp may encounter some problem, the inlier ratio is [ " << 1.0 * inliers.rows / count * 100 << " % ], the mean reprojection error is [ " << reproj_err << " ]." << std::endl;
         return 0;
@@ -265,7 +265,7 @@ bool MotionEstimator::getDepthFast(frame_t &cur_frame_1, frame_t &cur_frame_2, E
 
 bool MotionEstimator::doTriangulation(frame_t &cur_frame_1, frame_t &cur_frame_2,
                                       const std::vector<cv::DMatch> &matches,
-                                      pointcloud_sparse_t &sparse_pointcloud, bool filter_outlier, bool show)
+                                      pointcloud_sparse_t &sparse_pointcloud, bool show)
 {
     std::chrono::steady_clock::time_point tic = std::chrono::steady_clock::now();
 
@@ -346,8 +346,6 @@ bool MotionEstimator::doTriangulation(frame_t &cur_frame_1, frame_t &cur_frame_2
     std::chrono::duration<double> time_used = std::chrono::duration_cast<std::chrono::duration<double>>(toc - tic);
     std::cout << "Triangularization done in " << time_used.count() << " seconds. " << std::endl;
 
-    if (filter_outlier)
-        outlierFilter(sparse_pointcloud);
 
     if (show)
     {

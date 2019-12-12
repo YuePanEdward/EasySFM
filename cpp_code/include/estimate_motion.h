@@ -21,7 +21,7 @@ public:
 
   bool doTriangulation(frame_t &cur_frame_1, frame_t &cur_frame_2,
                        const std::vector<cv::DMatch> &matches,
-                       pointcloud_sparse_t &sparse_pointcloud, bool filter_outlier = true, bool show = false);
+                       pointcloud_sparse_t &sparse_pointcloud, bool show = false);
 
   bool getDepthFast(frame_t &cur_frame_1, frame_t &cur_frame_2, Eigen::Matrix4f &T_21,
                     const std::vector<cv::DMatch> &matches, double &appro_depth, int random_rate = 10);

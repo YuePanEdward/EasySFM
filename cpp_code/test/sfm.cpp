@@ -26,11 +26,13 @@ int main(int argc, char **argv)
     std::string output_file_path = argv[5];
     std::string use_feature = argv[6];
     std::string ba_frequency = argv[7];
-    std::string view_sphere_or_not = argv[8];
+    std::string launch_viewer_or_not = argv[8];
+    std::string view_sphere_or_not = argv[9];
 
-    char using_feature = use_feature.c_str()[0]; //Use SURF (S) or ORB (O) feature
-    int frequency_BA = stoi(ba_frequency);       //frequency of doing BA.
-    bool view_sphere = stoi(view_sphere_or_not); //Render point cloud as sphere or just point
+    char using_feature = use_feature.c_str()[0];     //Use SURF (S) or ORB (O) feature
+    int frequency_BA = stoi(ba_frequency);           //frequency of doing BA.
+    bool launch_viewer = stoi(launch_viewer_or_not); //Launch the real-time viewer
+    bool view_sphere = stoi(view_sphere_or_not);     //Render point cloud as sphere or just point
 
     std::vector<frame_t> frames;
 
@@ -205,20 +207,22 @@ int main(int argc, char **argv)
     int init_frame_1, init_frame_2;
     double depth_init; // initial frame pair's relative depth
     fm.findInitializeFramePair(feature_track_matrix, frames, img_match_graph, init_frame_1, init_frame_2, depth_init);
-   
+
     //SfM initialization
     frames[init_frame_1].pose_cam = Eigen::Matrix4f::Identity();
     std::cout << "Frame [" << init_frame_1 << "] 's pose: " << std::endl
               << frames[init_frame_1].pose_cam << std::endl;
-    mv.displayFrame(frames[init_frame_1]);
+    if (launch_viewer)
+        mv.displayFrame(frames[init_frame_1]);
 
     frames[init_frame_2].pose_cam = img_match_graph[init_frame_1][init_frame_2].T_21 * frames[init_frame_1].pose_cam;
     std::cout << "Frame [" << init_frame_2 << "] 's pose: " << std::endl
               << frames[init_frame_2].pose_cam << std::endl;
-    mv.displayFrame(frames[init_frame_2]);
+    if (launch_viewer)
+        mv.displayFrame(frames[init_frame_2]);
 
     ee.doTriangulation(frames[init_frame_1], frames[init_frame_2], img_match_graph[init_frame_1][init_frame_2].matches, sfm_sparse_points, 0);
-    
+
     std::vector<bool> frames_to_process(frames.size(), 1);
     frames_to_process[init_frame_1] = 0;
     frames_to_process[init_frame_2] = 0;
@@ -226,14 +230,16 @@ int main(int argc, char **argv)
     //Launch the on-fly viewer
     boost::shared_ptr<pcl::visualization::PCLVisualizer> sfm_viewer(new pcl::visualization::PCLVisualizer("EasySFM viewer"));
     sfm_viewer->setBackgroundColor(255, 255, 255);
-    mv.displaySFM_on_fly(sfm_viewer, frames, frames_to_process, sfm_sparse_points, depth_init, 3000, view_sphere);
+    if (launch_viewer)
+        mv.displaySFM_on_fly(sfm_viewer, frames, frames_to_process, sfm_sparse_points, depth_init, 3000, view_sphere);
 
     //BA of initialization
     BundleAdjustment ba;
     ba.doSFMBA(frames, frames_to_process, sfm_sparse_points);
     std::cout << "BA for initialization done" << std::endl;
     //mv.displaySFM(frames, frames_to_process, sfm_sparse_points, "SfM Initialization with BA", 0);
-    mv.displaySFM_on_fly(sfm_viewer, frames, frames_to_process, sfm_sparse_points);
+    if (launch_viewer)
+        mv.displaySFM_on_fly(sfm_viewer, frames, frames_to_process, sfm_sparse_points);
 
     std::cout << "Now add the next view" << std::endl;
 
@@ -254,23 +260,28 @@ int main(int argc, char **argv)
             if (!frames_to_process[i])
             {
                 if (next_frame > i) // frame 1 id should larger than frame 2 id
-                    ee.doTriangulation(frames[next_frame], frames[i], img_match_graph[next_frame][i].matches, sfm_sparse_points, !pnp_success);
+                    ee.doTriangulation(frames[next_frame], frames[i], img_match_graph[next_frame][i].matches, sfm_sparse_points);
                 else
-                    ee.doTriangulation(frames[i], frames[next_frame], img_match_graph[i][next_frame].matches, sfm_sparse_points, !pnp_success);
+                    ee.doTriangulation(frames[i], frames[next_frame], img_match_graph[i][next_frame].matches, sfm_sparse_points);
             }
         }
+        ee.outlierFilter(sfm_sparse_points, !pnp_success);
 
         frames_to_process[next_frame] = 0;
         frames_to_process_count--;
-        
-        mv.displayFrame(frames[next_frame]);
-        mv.displaySFM_on_fly(sfm_viewer, frames, frames_to_process, sfm_sparse_points);
+
+        if (launch_viewer)
+        {
+            mv.displayFrame(frames[next_frame]);
+            mv.displaySFM_on_fly(sfm_viewer, frames, frames_to_process, sfm_sparse_points);
+        }
 
         if (frames_to_process_count % frequency_BA == 0)
         {
             ba.doSFMBA(frames, frames_to_process, sfm_sparse_points);
             std::cout << "Temporal BA done." << std::endl;
-            //mv.displaySFM_on_fly(sfm_viewer, frames, frames_to_process, sfm_sparse_points);
+            // if (launch_viewer)
+            //     mv.displaySFM_on_fly(sfm_viewer, frames, frames_to_process, sfm_sparse_points);
         }
     }
 
@@ -279,8 +290,9 @@ int main(int argc, char **argv)
     // Do Gloabl BA
     ba.doSFMBA(frames, frames_to_process, sfm_sparse_points);
     std::cout << "Final BA done." << std::endl;
-    mv.displaySFM_on_fly(sfm_viewer, frames, frames_to_process, sfm_sparse_points, depth_init, 1000000);
-   
+    if (launch_viewer)
+        mv.displaySFM_on_fly(sfm_viewer, frames, frames_to_process, sfm_sparse_points, depth_init, 1000000);
+
     //mv.displaySFM(frames, frames_to_process, sfm_sparse_points, "SfM Result with BA", 0);
 
     // Filter the final point cloud
@@ -289,7 +301,7 @@ int main(int argc, char **argv)
     cp.SORFilter(sfm_sparse_points.rgb_pointcloud, output_pointcloud);
 
     // Output the sparse point cloud with BA
-    std::string output_file = output_file_path + "/sfm_sparse_point_cloud.ply";
+    std::string output_file = output_file_path;
     io.writePlyFile(output_file, output_pointcloud);
 
     return 1;

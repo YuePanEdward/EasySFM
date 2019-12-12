@@ -195,15 +195,15 @@ bool BundleAdjustment::doSFMBA(std::vector<frame_t> &frames, std::vector<bool> &
     int coord_thre = 200;
     for (int i = 0; i < sfm_sparse_points.unique_point_ids.size(); i++)
     {
-        if (std::abs(parameters_[6 * num_cameras_ + 3 * i]) < coord_thre &&
-            std::abs(parameters_[6 * num_cameras_ + 3 * i + 1]) < coord_thre &&
-            std::abs(parameters_[6 * num_cameras_ + 3 * i + 2]) < coord_thre)
-        {
+        // if (std::abs(parameters_[6 * num_cameras_ + 3 * i]) < coord_thre &&
+        //     std::abs(parameters_[6 * num_cameras_ + 3 * i + 1]) < coord_thre &&
+        //     std::abs(parameters_[6 * num_cameras_ + 3 * i + 2]) < coord_thre)
+        // {
 
             sfm_sparse_points.rgb_pointcloud->points[i].x = parameters_[6 * num_cameras_ + 3 * i];
             sfm_sparse_points.rgb_pointcloud->points[i].y = parameters_[6 * num_cameras_ + 3 * i + 1];
             sfm_sparse_points.rgb_pointcloud->points[i].z = parameters_[6 * num_cameras_ + 3 * i + 2];
-        }
+        //}
     }
 
     std::chrono::steady_clock::time_point toc = std::chrono::steady_clock::now();
