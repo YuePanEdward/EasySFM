@@ -12,6 +12,8 @@ namespace p3dv
 class DataIO
 {
 public:
+  bool importImageFilenames(const std::string image_list_path, const std::string image_data_path, std::vector<frame_t> &frames);
+
   bool importImages(frame_t &cur_frame, bool show = true);
 
   bool importCalib(const std::string &fileName, Eigen::Matrix3f &K_mat);
@@ -23,7 +25,6 @@ public:
   bool writePlyFile(const std::string &fileName, pcl::PointCloud<pcl::PointXYZRGB>::Ptr &pointCloud);
 
   bool writeTxtFile(const std::string &fileName, pcl::PointCloud<pcl::PointXYZRGB>::Ptr &pointCloud);
-
 };
 } // namespace p3dv
 #endif

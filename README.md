@@ -1,15 +1,19 @@
 # EasySFM
 A simple Structure-from-motion project for ETH P3DV ([Photogrammetry and 3D Vision](https://prs.igp.ethz.ch/)) course
 
-![alt text](assets/demo_expected.png)
+![alt text](assets/easySFM_demo_fountain.png)
 
-## C++ version under development 
+![alt text](assets/easySFM_demo_personhall.png)
+
+## C++ version passed
+
+Environment: Linux (Ubuntu 16.04)
 
 ### How to use
 
 1. Install dependent 3rd libraries: 
 
-[OpenCV(>=3)](https://github.com/opencv/opencv),[PCL(>=1.7)](https://github.com/PointCloudLibrary/pcl), [Eigen3](https://eigen.tuxfamily.org/dox/), [Ceres](https://github.com/ceres-solver/ceres-solver)
+[OpenCV(>=3)](https://github.com/opencv/opencv) with [contrib](https://github.com/opencv/opencv_contrib/tree/3.4),[PCL(>=1.7)](https://github.com/PointCloudLibrary/pcl), [Eigen3](https://eigen.tuxfamily.org/dox/), [Ceres](https://github.com/ceres-solver/ceres-solver)
 
 
 2. Compile
@@ -29,7 +33,7 @@ sh script/run_fountain_small.sh
 # If you'd like to use your own data or change some vital parameters, configure the run_xxx.sh file
 ```
 
-4. Dataset
+4. Dataset preparation
 
 A toy dataset (fountain) can be found in test_data folder.
 

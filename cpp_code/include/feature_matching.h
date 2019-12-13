@@ -12,10 +12,10 @@ public:
 
   bool detectFeaturesORB(frame_t &cur_frame, int max_num = 5000, bool show = false);
 
-  bool detectFeaturesSURF(frame_t &cur_frame, int minHessian = 400, bool show = false);
+  bool detectFeaturesSURF(frame_t &cur_frame, int minHessian = 350, bool show = false);
 
   bool matchFeaturesORB(frame_t &cur_frame_1, frame_t &cur_frame_2, std::vector<cv::DMatch> &matches,
-                        double ratio_thre = 0.5, bool show = false);
+                        double ratio_thre = 0.8, bool show = false);
 
   bool matchFeaturesSURF(frame_t &cur_frame_1, frame_t &cur_frame_2, std::vector<cv::DMatch> &matches,
                          double ratio_thre = 0.5, bool show = false);

@@ -14,6 +14,37 @@
 
 using namespace p3dv;
 
+bool DataIO::importImageFilenames(const std::string image_list_path, const std::string image_data_path,
+								  std::vector<frame_t> &frames)
+{
+	//read image filename
+	std::ifstream image_list_file(image_list_path.c_str(), std::ios::in);
+	if (!image_list_file.is_open())
+	{
+		std::cout << "open image_list_file failed, file is: " << image_list_path << std::endl;
+		return 0;
+	}
+
+	int count = 0;
+	while (image_list_file.peek() != EOF)
+	{
+		std::string cur_file;
+		image_list_file >> cur_file;
+		if (!cur_file.empty())
+		{
+			cur_file = image_data_path + "/" + cur_file;
+			frame_t cur_frame(count, cur_file);
+			frames.push_back(cur_frame);
+			std::cout << count << ": " << cur_file << std::endl;
+			count++;
+		}
+	}
+	int frame_number = frames.size();
+	std::cout << "Frame number is " << frame_number << std::endl;
+
+	return 1;
+}
+
 bool DataIO::importImages(frame_t &cur_frame, bool show)
 {
 	std::chrono::steady_clock::time_point tic = std::chrono::steady_clock::now();

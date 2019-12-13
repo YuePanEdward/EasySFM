@@ -18,7 +18,7 @@
 namespace p3dv
 {
 
-struct frame_t
+struct frame_t //Basic unit for processing
 {
     unsigned int frame_id;
     std::string image_file_path;
@@ -79,18 +79,10 @@ struct frame_graph_t
 {
      std::vector<std::vector<frame_pair_t>> frame_graph;
      
-    //  frame_graph_t(unsigned int frame_num)
-    //  {   
-    //      frame_graph.resize(frame_num);
-    //      for (int i=0;i++;i<frame_num)
-    //      {
-    //          frame_graph[i].resize(frame_num);
-    //      }
-    //  }
-
+     //to add
 };
 
-struct pointcloud_sparse_t
+struct pointcloud_sparse_t 
 {
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr rgb_pointcloud;
     

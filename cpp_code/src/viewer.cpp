@@ -143,7 +143,7 @@ bool MapViewer::displaySFM(std::vector<frame_t> &frames, std::vector<bool> &fram
 }
 
 bool MapViewer::displaySFM_on_fly(boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer,
-                                  std::vector<frame_t> &frames, std::vector<bool> &frames_to_process,
+                                  std::vector<frame_t> &frames, std::vector<bool> &frames_to_process, int cur_frame_id,
                                   pointcloud_sparse_t &sparse_pointcloud, double relative_depth,
                                   int display_time_ms, bool render_point_as_sphere)
 {
@@ -168,15 +168,32 @@ bool MapViewer::displaySFM_on_fly(boost::shared_ptr<pcl::visualization::PCLVisua
     // convert unit from meter to baseline_length
     float sphere_size = approximate_scale_ * 0.02;
     float point_size = approximate_scale_ * 0.02;
-    float line_size_cam_z = approximate_scale_ * 0.4;
-    float line_size_cam_x = approximate_scale_ * 0.6;
-    float line_size_cam_y = approximate_scale_ * 0.4;
+    float line_size_cam_z = approximate_scale_ * 0.3;
+    float line_size_cam_x = approximate_scale_ * 0.5;
+    float line_size_cam_y = approximate_scale_ * 0.3;
+
+    float frame_r_value = 0;
+    float frame_g_value = 0;
+    float frame_b_value = 0;
 
     // Draw camera
     for (int i = 0; i < frames.size(); i++)
     {
         if (!frames_to_process[i])
         {
+            if (cur_frame_id == i)
+            {
+                frame_r_value = 0.0;
+                frame_g_value = 1.0;
+                frame_b_value = 0.0;
+            }
+            else
+            {
+                frame_r_value = 1.0;
+                frame_g_value = 0.0;
+                frame_b_value = 0.0;
+            }
+
             std::cout << "Add frame [ " << i << " ] , pose:\n"
                       << frames[i].pose_cam << std::endl;
 
@@ -195,50 +212,50 @@ bool MapViewer::displaySFM_on_fly(boost::shared_ptr<pcl::visualization::PCLVisua
             pcl::PointXYZ pt_cam_corner_4(line_size_cam_x / 2, -line_size_cam_y / 2, line_size_cam_z);
             camera_pointcloud->points.push_back(pt_cam_corner_4);
 
-            Eigen::Matrix4f test_mat = frames[i].pose_cam;
+            Eigen::Matrix4f test_mat = frames[i].pose_cam.inverse();
             MotionEstimator ee;
             ee.transformCloud(camera_pointcloud, transformed_camera_pointcloud, test_mat);
 
             sprintf(t, "point1_%d", n);
             s = t;
-            viewer->addSphere(transformed_camera_pointcloud->points[0], sphere_size, 1.0, 0.0, 0.0, s);
+            viewer->addSphere(transformed_camera_pointcloud->points[0], sphere_size, frame_r_value, frame_g_value, frame_b_value, s);
             sprintf(t, "point2_%d", n);
             s = t;
-            viewer->addSphere(transformed_camera_pointcloud->points[1], sphere_size, 1.0, 0.0, 0.0, s);
+            viewer->addSphere(transformed_camera_pointcloud->points[1], sphere_size, frame_r_value, frame_g_value, frame_b_value, s);
             sprintf(t, "point3_%d", n);
             s = t;
-            viewer->addSphere(transformed_camera_pointcloud->points[2], sphere_size, 1.0, 0.0, 0.0, s);
+            viewer->addSphere(transformed_camera_pointcloud->points[2], sphere_size, frame_r_value, frame_g_value, frame_b_value, s);
             sprintf(t, "point4_%d", n);
             s = t;
-            viewer->addSphere(transformed_camera_pointcloud->points[3], sphere_size, 1.0, 0.0, 0.0, s);
+            viewer->addSphere(transformed_camera_pointcloud->points[3], sphere_size, frame_r_value, frame_g_value, frame_b_value, s);
             sprintf(t, "point5_%d", n);
             s = t;
-            viewer->addSphere(transformed_camera_pointcloud->points[4], sphere_size, 1.0, 0.0, 0.0, s);
+            viewer->addSphere(transformed_camera_pointcloud->points[4], sphere_size, frame_r_value, frame_g_value, frame_b_value, s);
 
             sprintf(t, "line1_%d", n);
             s = t;
-            viewer->addLine(transformed_camera_pointcloud->points[0], transformed_camera_pointcloud->points[1], 1.0, 0.0, 0.0, s);
+            viewer->addLine(transformed_camera_pointcloud->points[0], transformed_camera_pointcloud->points[1], frame_r_value, frame_g_value, frame_b_value, s);
             sprintf(t, "line2_%d", n);
             s = t;
-            viewer->addLine(transformed_camera_pointcloud->points[0], transformed_camera_pointcloud->points[2], 1.0, 0.0, 0.0, s);
+            viewer->addLine(transformed_camera_pointcloud->points[0], transformed_camera_pointcloud->points[2], frame_r_value, frame_g_value, frame_b_value, s);
             sprintf(t, "line3_%d", n);
             s = t;
-            viewer->addLine(transformed_camera_pointcloud->points[0], transformed_camera_pointcloud->points[3], 1.0, 0.0, 0.0, s);
+            viewer->addLine(transformed_camera_pointcloud->points[0], transformed_camera_pointcloud->points[3], frame_r_value, frame_g_value, frame_b_value, s);
             sprintf(t, "line4_%d", n);
             s = t;
-            viewer->addLine(transformed_camera_pointcloud->points[0], transformed_camera_pointcloud->points[4], 1.0, 0.0, 0.0, s);
+            viewer->addLine(transformed_camera_pointcloud->points[0], transformed_camera_pointcloud->points[4], frame_r_value, frame_g_value, frame_b_value, s);
             sprintf(t, "line5_%d", n);
             s = t;
-            viewer->addLine(transformed_camera_pointcloud->points[1], transformed_camera_pointcloud->points[2], 1.0, 0.0, 0.0, s);
+            viewer->addLine(transformed_camera_pointcloud->points[1], transformed_camera_pointcloud->points[2], frame_r_value, frame_g_value, frame_b_value, s);
             sprintf(t, "line6_%d", n);
             s = t;
-            viewer->addLine(transformed_camera_pointcloud->points[2], transformed_camera_pointcloud->points[3], 1.0, 0.0, 0.0, s);
+            viewer->addLine(transformed_camera_pointcloud->points[2], transformed_camera_pointcloud->points[3], frame_r_value, frame_g_value, frame_b_value, s);
             sprintf(t, "line7_%d", n);
             s = t;
-            viewer->addLine(transformed_camera_pointcloud->points[3], transformed_camera_pointcloud->points[4], 1.0, 0.0, 0.0, s);
+            viewer->addLine(transformed_camera_pointcloud->points[3], transformed_camera_pointcloud->points[4], frame_r_value, frame_g_value, frame_b_value, s);
             sprintf(t, "line8_%d", n);
             s = t;
-            viewer->addLine(transformed_camera_pointcloud->points[4], transformed_camera_pointcloud->points[1], 1.0, 0.0, 0.0, s);
+            viewer->addLine(transformed_camera_pointcloud->points[4], transformed_camera_pointcloud->points[1], frame_r_value, frame_g_value, frame_b_value, s);
 
             n++;
         }
@@ -289,5 +306,14 @@ bool MapViewer::displayFrame(frame_t &cur_frame, std::string viewer_name, int ti
     cv::namedWindow(viewer_name, 0);
     cv::drawKeypoints(cur_frame.rgb_image, cur_frame.keypoints, feature_image, cv::Scalar::all(-1), cv::DrawMatchesFlags::DEFAULT);
     cv::imshow(viewer_name, feature_image);
+    cv::waitKey(time_delay_ms);
+}
+
+bool MapViewer::displayFrameMatch(frame_t &cur_frame_1, frame_t &cur_frame_2, std::vector<cv::DMatch> &inlier_matches, std::string viewer_name, int time_delay_ms)
+{
+    cv::Mat match_image;
+    cv::namedWindow(viewer_name, 0);
+    cv::drawMatches(cur_frame_1.rgb_image, cur_frame_1.keypoints, cur_frame_2.rgb_image, cur_frame_2.keypoints, inlier_matches, match_image);
+    cv::imshow(viewer_name, match_image);
     cv::waitKey(time_delay_ms);
 }

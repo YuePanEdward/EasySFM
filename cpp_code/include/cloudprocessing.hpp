@@ -4,6 +4,8 @@
 // Author: Yue Pan et al.
 //
 
+// More functions to add
+
 #ifndef CLOUD_PRO_H
 #define CLOUD_PRO_H
 

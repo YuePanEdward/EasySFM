@@ -22,15 +22,15 @@ bool BundleAdjustment::setBAProblem(std::vector<frame_t> &frames, std::vector<bo
     {
         if (!process_frame_id[i]) // 0 for processing
         {
-            for (int j = 0; j < frames[i].unique_pixel_ids.size(); j++)
+            calibs_.push_back(frames[i].K_cam);
+            for (int k = 0; k < sfm_sparse_points.unique_point_ids.size(); k++)
             {
-                for (int k = 0; k < sfm_sparse_points.unique_point_ids.size(); k++)
+                for (int j = 0; j < frames[i].unique_pixel_ids.size(); j++)
                 {
-                    if (/*sfm_sparse_points.is_inlier[k] && */(frames[i].unique_pixel_ids[j] == sfm_sparse_points.unique_point_ids[k]))
+                    if (/*sfm_sparse_points.is_inlier[k] && */ (frames[i].unique_pixel_ids[j] == sfm_sparse_points.unique_point_ids[k]))
                     {
                         //Set the none-changed observations
                         points_2d_.push_back(frames[i].keypoints[j].pt);
-                        calibs_.push_back(frames[i].K_cam);
 
                         //Set the mapping function
                         point_index_.push_back(k);
@@ -48,8 +48,8 @@ bool BundleAdjustment::setBAProblem(std::vector<frame_t> &frames, std::vector<bo
             num_cameras_++;
         }
     }
-    
-    std::cout<<"Find the observation done"<<std::endl;
+
+    std::cout << "Find the observation done" << std::endl;
 
     observations_ = new double[2 * num_observations_];
     num_parameters_ = 6 * num_cameras_ + 3 * num_points_;
@@ -82,8 +82,8 @@ bool BundleAdjustment::setBAProblem(std::vector<frame_t> &frames, std::vector<bo
             k++;
         }
     }
-    
-    std::cout<<"Set camera parameters inital value done"<<std::endl;
+
+    std::cout << "Set camera parameters inital value done" << std::endl;
 
     for (int i = 0; i < sfm_sparse_points.unique_point_ids.size(); i++)
     {
@@ -91,8 +91,7 @@ bool BundleAdjustment::setBAProblem(std::vector<frame_t> &frames, std::vector<bo
         parameters_[6 * num_cameras_ + 3 * i + 1] = sfm_sparse_points.rgb_pointcloud->points[i].y;
         parameters_[6 * num_cameras_ + 3 * i + 2] = sfm_sparse_points.rgb_pointcloud->points[i].z;
     }
-    std::cout<<"Set points inital value done"<<std::endl;
-
+    std::cout << "Set points inital value done" << std::endl;
 
     std::cout << "Find [ " << num_observations_ << " ] Observations in total." << std::endl;
     std::cout << "There are [ " << num_cameras_ << " ] cameras and [ " << num_points_ << " ] 3D points." << std::endl;
@@ -113,10 +112,12 @@ bool BundleAdjustment::setBAProblem(std::vector<frame_t> &frames, std::vector<bo
 bool BundleAdjustment::solveBA()
 {
     ceres::Problem problem;
-    
+
     cv::Mat discoeff;
 
-    double fixed_threshold=1e-10;
+    std::cout << "Begin to calculate the loss (reprojection error)" << std::endl;
+
+    double fixed_threshold = 1e-10;
     for (int i = 0; i < num_observations_; i++)
     {
         // Each Residual block takes a point and a camera as input and outputs a 2
@@ -124,7 +125,7 @@ bool BundleAdjustment::solveBA()
         // image location and compares the reprojection against the observation.
 
         ceres::CostFunction *cost_function =
-            ReprojectErrorTerm::Create(points_2d_[i], calibs_[i], discoeff);
+            ReprojectErrorTerm::Create(points_2d_[i], calibs_[camera_index_[i]], discoeff);
 
         problem.AddResidualBlock(cost_function,
                                  new ceres::CauchyLoss(0.6), // NULL /* squared loss */, /* new CauchyLoss(0.5) */
@@ -206,9 +207,9 @@ bool BundleAdjustment::doSFMBA(std::vector<frame_t> &frames, std::vector<bool> &
         //     std::abs(parameters_[6 * num_cameras_ + 3 * i + 2]) < coord_thre)
         // {
 
-            sfm_sparse_points.rgb_pointcloud->points[i].x = parameters_[6 * num_cameras_ + 3 * i];
-            sfm_sparse_points.rgb_pointcloud->points[i].y = parameters_[6 * num_cameras_ + 3 * i + 1];
-            sfm_sparse_points.rgb_pointcloud->points[i].z = parameters_[6 * num_cameras_ + 3 * i + 2];
+        sfm_sparse_points.rgb_pointcloud->points[i].x = parameters_[6 * num_cameras_ + 3 * i];
+        sfm_sparse_points.rgb_pointcloud->points[i].y = parameters_[6 * num_cameras_ + 3 * i + 1];
+        sfm_sparse_points.rgb_pointcloud->points[i].z = parameters_[6 * num_cameras_ + 3 * i + 2];
         //}
     }
 
