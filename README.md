@@ -1,7 +1,7 @@
 # EasySFM
 A simple Structure-from-motion project for ETH P3DV ([Photogrammetry and 3D Vision](https://prs.igp.ethz.ch/)) course
 
-![alt text](assets/easySFM_demo_fountain.png)
+![alt text](assets/easySFM_demo_1_fountain.gif)
 
 ![alt text](assets/easySFM_demo_personhall.png)
 
