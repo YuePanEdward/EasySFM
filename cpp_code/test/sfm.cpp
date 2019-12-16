@@ -41,16 +41,19 @@ int main(int argc, char **argv)
     // Key processing and visualization parameters
     std::string use_feature = argv[6];
     std::string feature_extraction_parameter = argv[7];
-    std::string ba_frequency = argv[8];
-    std::string launch_viewer_or_not = argv[9];
-    std::string view_sphere_or_not = argv[10];
+    std::string ransac_reproj_dist_thre = argv[8];
+    std::string ba_fix_calib_tolerance = argv[9];
+    std::string ba_frequency = argv[10];
+
+    std::string launch_viewer_or_not = argv[11];
+    std::string view_sphere_or_not = argv[12];
 
     char using_feature = use_feature.c_str()[0]; //Use SURF (S) or ORB (O) feature
-
     // feature_extract_parameter: if you choose to use SURF , it is the min Hessian for SURF feature, the larger this value is, the less features would be extracted (a reference value would be 300)
     // if you choose to use ORB , it would be the largest number of feature that would be extracted (a reference value would be 8000)
     int feature_extract_parameter = stoi(feature_extraction_parameter);
-
+    double ransac_reproj_dist = stod(ransac_reproj_dist_thre);    //the initial value of reprojection distance threshold for RANSAC (Initialization 5points and PnP). This value may increase before the next BA due to possible error accumulaion. 
+    bool fix_calib_tolerance_BA = stod(ba_fix_calib_tolerance);   //How much can the calib matrix change when doing BA (Default 0: calib matrix is fixed, others should be positive)
     int frequency_BA = stoi(ba_frequency);          //frequency of doing BA.
     int launch_viewer = stoi(launch_viewer_or_not); //Launch the real-time viewer (2: display all the processing details, 1: display neccessary details, 0: only dispaly the final result)
     bool view_sphere = stoi(view_sphere_or_not);    //Render point cloud as sphere or just point
@@ -247,7 +250,7 @@ int main(int argc, char **argv)
 
     //BA of initialization
     BundleAdjustment ba;
-    ba.doSFMBA(frames, frames_to_process, sfm_sparse_points);
+    ba.doSFMBA(frames, frames_to_process, sfm_sparse_points, fix_calib_tolerance_BA);
     std::cout << "BA for initialization done" << std::endl;
     //mv.displaySFM(frames, frames_to_process, sfm_sparse_points, "SfM Initialization with BA", 0);
     if (launch_viewer > 1)
@@ -257,7 +260,7 @@ int main(int argc, char **argv)
 
     //SfM keeps registering new frames
     int frames_to_process_count = frames.size() - 2;
-    float ransac_reproj_dist = 1.0;     //initial threshold of reprojection error for PnP RANSAC
+
     while (frames_to_process_count > 0) //Till all the frames are processed
     {
         int next_frame;
@@ -297,7 +300,7 @@ int main(int argc, char **argv)
         //Do BA each frequency_BA time
         if (frames_to_process_count % frequency_BA == 0)
         {
-            ba.doSFMBA(frames, frames_to_process, sfm_sparse_points);
+            ba.doSFMBA(frames, frames_to_process, sfm_sparse_points, fix_calib_tolerance_BA);
             std::cout << "Temporal BA done." << std::endl;
             if (launch_viewer > 1)
                 mv.displaySFM_on_fly(sfm_viewer, frames, frames_to_process, next_frame, sfm_sparse_points);
