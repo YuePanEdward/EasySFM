@@ -5,11 +5,11 @@ A simple Structure-from-motion project for ETH P3DV ([Photogrammetry and 3D Visi
 
 ![alt text](assets/easySFM_demo_2_personhall.gif)
 
-## C++ version passed
+### C++ version passed
 
 Environment: Linux (Ubuntu 16.04)
 
-### How to use
+## How to use
 
 1. Install dependent 3rd libraries 
 
@@ -52,7 +52,7 @@ f1 0 c1
 0 0 1
 ```
 
-distort.txt
+distort.txt (not neccessary)
 ```
 k1 k2 p1 p2
 ```
@@ -88,3 +88,6 @@ view_sphere=0;                  # render the point as sphere during visualizatio
 ${feature_type} ${feature_parameter} ${repro_dis_ransac} ${ba_calib_change_tolerance} ${ba_frequency} \
 ${launch_viewer} ${view_sphere} 
 ```
+
+### About
+Author: Yue Pan @ ETH Zurich D-BAUG
