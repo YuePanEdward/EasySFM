@@ -17,7 +17,7 @@ public:
   bool estimate2D2D_E5P_RANSAC(frame_t &cur_frame_1, frame_t &cur_frame_2,
                                std::vector<cv::DMatch> &matches, std::vector<cv::DMatch> &inlier_matches,
                                Eigen::Matrix4f &T,
-                               double ransac_prob = 0.99, double ransac_thre = 1.0, bool show = false);
+                               double ransac_thre = 1.0, double ransac_prob = 0.99, bool show = false);
 
   bool doTriangulation(frame_t &cur_frame_1, frame_t &cur_frame_2,
                        const std::vector<cv::DMatch> &matches,

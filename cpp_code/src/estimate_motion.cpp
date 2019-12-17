@@ -26,7 +26,7 @@ using namespace p3dv;
 
 bool MotionEstimator::estimate2D2D_E5P_RANSAC(frame_t &cur_frame_1, frame_t &cur_frame_2,
                                               std::vector<cv::DMatch> &matches, std::vector<cv::DMatch> &inlier_matches,
-                                              Eigen::Matrix4f &T, double ransac_prob, double ransac_thre, bool show)
+                                              Eigen::Matrix4f &T, double ransac_thre, double ransac_prob, bool show)
 {
     std::chrono::steady_clock::time_point tic = std::chrono::steady_clock::now();
 

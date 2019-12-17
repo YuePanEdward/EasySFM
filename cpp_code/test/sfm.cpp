@@ -42,21 +42,23 @@ int main(int argc, char **argv)
     std::string use_feature = argv[6];
     std::string feature_extraction_parameter = argv[7];
     std::string ransac_reproj_dist_thre = argv[8];
-    std::string ba_fix_calib_tolerance = argv[9];
-    std::string ba_frequency = argv[10];
+    std::string find_best_initialization = argv[9];
+    std::string ba_fix_calib_tolerance = argv[10];
+    std::string ba_frequency = argv[11];
 
-    std::string launch_viewer_or_not = argv[11];
-    std::string view_sphere_or_not = argv[12];
+    std::string launch_viewer_or_not = argv[12];
+    std::string view_sphere_or_not = argv[13];
 
     char using_feature = use_feature.c_str()[0]; //Use SURF (S) or ORB (O) feature
     // feature_extract_parameter: if you choose to use SURF , it is the min Hessian for SURF feature, the larger this value is, the less features would be extracted (a reference value would be 300)
     // if you choose to use ORB , it would be the largest number of feature that would be extracted (a reference value would be 8000)
     int feature_extract_parameter = stoi(feature_extraction_parameter);
-    double ransac_reproj_dist = stod(ransac_reproj_dist_thre);    //the initial value of reprojection distance threshold for RANSAC (Initialization 5points and PnP). This value may increase before the next BA due to possible error accumulaion. 
-    bool fix_calib_tolerance_BA = stod(ba_fix_calib_tolerance);   //How much can the calib matrix change when doing BA (Default 0: calib matrix is fixed, others should be positive)
-    int frequency_BA = stoi(ba_frequency);          //frequency of doing BA.
-    int launch_viewer = stoi(launch_viewer_or_not); //Launch the real-time viewer (2: display all the processing details, 1: display neccessary details, 0: only dispaly the final result)
-    bool view_sphere = stoi(view_sphere_or_not);    //Render point cloud as sphere or just point
+    double ransac_reproj_distance = stod(ransac_reproj_dist_thre);  //the initial value of reprojection distance threshold for RANSAC (Initialization 5points and PnP). This value may increase before the next BA due to possible error accumulaion.
+    bool use_track_frames_as_init = stoi(find_best_initialization); //Find best frame pairs for initialization or not (1: find pair, 0: just use the first two frames for initialization)
+    double fix_calib_tolerance_BA = stod(ba_fix_calib_tolerance);   //How much can the calib matrix change when doing BA (Default 0: calib matrix is fixed, others should be positive)
+    int frequency_BA = stoi(ba_frequency);                          //frequency of doing BA.
+    int launch_viewer = stoi(launch_viewer_or_not);                 //Launch the real-time viewer (2: display all the processing details, 1: display neccessary details, 0: only dispaly the final result)
+    bool view_sphere = stoi(view_sphere_or_not);                    //Render point cloud as sphere or just point
 
     //Functional Classes
     DataIO io;
@@ -160,8 +162,8 @@ int main(int argc, char **argv)
 
             if (temp_matches.size() > num_min_pair) // Double check with RANSAC
             {
-                ee.estimate2D2D_E5P_RANSAC(frames[i], frames[j], temp_matches, inlier_matches, T_mat); //Filter the matching by epipolar geometry 5 points RANSAC
-                ee.getDepthFast(frames[i], frames[j], T_mat, inlier_matches, relative_depth);          // Approximately estimate the mean depth
+                ee.estimate2D2D_E5P_RANSAC(frames[i], frames[j], temp_matches, inlier_matches, T_mat, ransac_reproj_distance); //Filter the matching by epipolar geometry 5 points RANSAC
+                ee.getDepthFast(frames[i], frames[j], T_mat, inlier_matches, relative_depth);                                  // Approximately estimate the mean depth
 
                 if (launch_viewer > 1)
                     mv.displayFrameMatch(frames[i], frames[j], inlier_matches);
@@ -183,7 +185,10 @@ int main(int argc, char **argv)
                         }
                     }
                     if (!is_duplicated)
+                    {
                         frames[i].unique_pixel_ids[inlier_matches[k].queryIdx] = frames[j].unique_pixel_ids[inlier_matches[k].trainIdx];
+                        frames[i].unique_pixel_has_match[inlier_matches[k].queryIdx] = 1;
+                    }
                 }
             }
 
@@ -216,12 +221,16 @@ int main(int argc, char **argv)
 
     //Find frame pair for initialization using feature track matrix
     int init_frame_1, init_frame_2;
-    double depth_init; // initial frame pair's relative depth
+    // This would be applied if you chose to initialize from the first two frames
+    init_frame_1 = 1;
+    init_frame_2 = 0;
+    double depth_init = 10.0; // initial frame pair's relative depth (10.0 set as the default value)
 
     // Two conditions for the initialization frame pair:
     // 1. baseline length should not be too small (avoid the pure-rotation problem)
     // 2. more common feature tracks would be prefered
-    fm.findInitializeFramePair(feature_track_matrix, frames, img_match_graph, init_frame_1, init_frame_2, depth_init);
+    if (use_track_frames_as_init)
+        fm.findInitializeFramePair(feature_track_matrix, frames, img_match_graph, init_frame_1, init_frame_2, depth_init);
 
     //SfM initialization
     frames[init_frame_1].pose_cam = Eigen::Matrix4f::Identity();
@@ -246,7 +255,7 @@ int main(int argc, char **argv)
     boost::shared_ptr<pcl::visualization::PCLVisualizer> sfm_viewer(new pcl::visualization::PCLVisualizer("EasySFM viewer"));
     sfm_viewer->setBackgroundColor(255, 255, 255);
     if (launch_viewer)
-        mv.displaySFM_on_fly(sfm_viewer, frames, frames_to_process, init_frame_1, sfm_sparse_points, depth_init, 2500, view_sphere);
+        mv.displaySFM_on_fly(sfm_viewer, frames, frames_to_process, init_frame_1, sfm_sparse_points, depth_init, 8500, view_sphere);
 
     //BA of initialization
     BundleAdjustment ba;
@@ -260,6 +269,7 @@ int main(int argc, char **argv)
 
     //SfM keeps registering new frames
     int frames_to_process_count = frames.size() - 2;
+    double ransac_reproj_dist = ransac_reproj_distance;
 
     while (frames_to_process_count > 0) //Till all the frames are processed
     {
@@ -270,7 +280,7 @@ int main(int argc, char **argv)
         bool pnp_success = ee.estimate2D3D_P3P_RANSAC(frames[next_frame], sfm_sparse_points, ransac_reproj_dist);
 
         //Since BA would not be done every time due to effciency consideration, relax the threshold a bit
-        ransac_reproj_dist = ransac_reproj_dist + 1.0;
+        ransac_reproj_dist += 1.0;
 
         std::cout << "Frame [" << next_frame << "] 's pose: " << std::endl
                   << frames[next_frame].pose_cam << std::endl;
@@ -304,10 +314,11 @@ int main(int argc, char **argv)
             std::cout << "Temporal BA done." << std::endl;
             if (launch_viewer > 1)
                 mv.displaySFM_on_fly(sfm_viewer, frames, frames_to_process, next_frame, sfm_sparse_points);
-            ransac_reproj_dist = 2.0; //re-define the threshold
+            ransac_reproj_dist = ransac_reproj_distance; //re-define the threshold
         }
+        std::cout << "Progress: [ " << frames.size() - frames_to_process_count << " / " << frames.size() << " ]" << std::endl;
     }
-    cout << "Adding all the cameras done." << endl;
+    std::cout << "Adding all the cameras done." << std::endl;
 
     // Do Gloabl BA
     ba.doSFMBA(frames, frames_to_process, sfm_sparse_points);

@@ -30,6 +30,8 @@ struct frame_t //Basic unit for processing
     std::vector<cv::KeyPoint> keypoints;
     cv::Mat descriptors;
     std::vector<int> unique_pixel_ids;  // assign the initial value as -1
+    std::vector<bool> unique_pixel_has_match;
+
 
     Eigen::Matrix4f pose_cam;    // extrinsic elements of the camera
     Eigen::Matrix3f K_cam;       // intrinsic elements of the camera
@@ -47,6 +49,7 @@ struct frame_t //Basic unit for processing
         for (int i=0;i<keypoints.size();i++ )
         {
             unique_pixel_ids.push_back(-1);
+            unique_pixel_has_match.push_back(0);
         }
     }
 };

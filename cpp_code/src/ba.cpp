@@ -28,17 +28,21 @@ bool BundleAdjustment::setBAProblem(std::vector<frame_t> &frames, std::vector<bo
             {
                 for (int j = 0; j < frames[i].unique_pixel_ids.size(); j++)
                 {
-                    if (/*sfm_sparse_points.is_inlier[k] && */ (frames[i].unique_pixel_ids[j] == sfm_sparse_points.unique_point_ids[k]))
+                    if (frames[i].unique_pixel_has_match[j])
                     {
-                        //Set the none-changed observations
-                        points_2d_.push_back(frames[i].keypoints[j].pt);
+                        if (/*sfm_sparse_points.is_inlier[k] && */
+                            (frames[i].unique_pixel_ids[j] == sfm_sparse_points.unique_point_ids[k]))
+                        {
+                            //Set the none-changed observations
+                            points_2d_.push_back(frames[i].keypoints[j].pt);
 
-                        //Set the mapping function
-                        point_index_.push_back(k);
-                        camera_index_.push_back(num_cameras_);
+                            //Set the mapping function
+                            point_index_.push_back(k);
+                            camera_index_.push_back(num_cameras_);
 
-                        num_observations_++;
-                        break;
+                            num_observations_++;
+                            break;
+                        }
                     }
                 }
             }
@@ -47,6 +51,7 @@ bool BundleAdjustment::setBAProblem(std::vector<frame_t> &frames, std::vector<bo
                 ref_process_camera_id_ = num_cameras_;
             }
             num_cameras_++;
+            std::cout << "Process frame " << i << " Done" << std::endl;
         }
     }
 
