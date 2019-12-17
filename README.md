@@ -98,6 +98,7 @@ ${launch_viewer} ${view_sphere}
 - [ ] try more robust outlier filter
 - [ ] improve the efficieny of bundle adjustment
 - [ ] multithreading computing using CUDA
+- [ ] write a GUI for the software using QT
 
 
 ### About
