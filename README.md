@@ -91,13 +91,14 @@ ${launch_viewer} ${view_sphere}
 ```
 
 ### TO DO List
-- [ ] add sequential mode
+- [ ] add sequential mode (visual slam)
 - [ ] add multiple-camera mode (different intrinsic elements)
 - [ ] add semantic label using deep learning
 - [ ] add multi-view stereo dense reconstruction
 - [ ] try more robust outlier filter
 - [ ] improve the efficieny of bundle adjustment
 - [ ] multithreading computing using CUDA
+
 
 ### About
 Author: Yue Pan @ ETH Zurich D-BAUG
