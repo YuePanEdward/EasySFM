@@ -310,6 +310,7 @@ int main(int argc, char **argv)
         //Do BA each frequency_BA time
         if (frames_to_process_count % frequency_BA == 0)
         {
+            ba.initBA();
             ba.doSFMBA(frames, frames_to_process, sfm_sparse_points, fix_calib_tolerance_BA);
             std::cout << "Temporal BA done." << std::endl;
             if (launch_viewer > 1)

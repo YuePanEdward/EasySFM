@@ -1,0 +1,3 @@
+/home/panyue/pyfolder/codes/EasySFM/cpp_code/build/CMakeFiles/rebuild_cache.dir
+/home/panyue/pyfolder/codes/EasySFM/cpp_code/build/CMakeFiles/edit_cache.dir
+/home/panyue/pyfolder/codes/EasySFM/cpp_code/build/CMakeFiles/sfm.dir
