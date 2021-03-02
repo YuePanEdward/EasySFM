@@ -1,7 +1,7 @@
 #data path
-image_folder=../test_data/images;
+image_folder=../test_data/images_25;
 image_list=../test_data/image_list.txt;
-calib_k_file=../test_data/k/K.txt;
+calib_k_file=../test_data/k_25/K.txt;
 calib_distort_file=none; # not neccessary, if not provided, just set it as none
 output_file=../test_data/output/sfm_sparse_point_cloud_fountain.ply;
 
