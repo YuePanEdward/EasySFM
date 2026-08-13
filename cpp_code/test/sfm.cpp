@@ -277,7 +277,14 @@ int main(int argc, char **argv)
         //Find the next frame according to the feature tracking matrix
         fm.findNextFrame(feature_track_matrix, frames_to_process, sfm_sparse_points.unique_point_ids, next_frame);
         //Use PnP to register new frame
-        bool pnp_success = ee.estimate2D3D_P3P_RANSAC(frames[next_frame], sfm_sparse_points, ransac_reproj_dist);
+        try {
+            bool pnp_success = ee.estimate2D3D_P3P_RANSAC(frames[next_frame], sfm_sparse_points, ransac_reproj_dist);
+        } catch (const cv::Exception& e) {
+            std::cerr << "OpenCV PnP failed: " << e.what() << std::endl;
+            frames_to_process[next_frame] = 0;
+            frames_to_process_count--;
+            continue;
+        }
 
         //Since BA would not be done every time due to effciency consideration, relax the threshold a bit
         ransac_reproj_dist += 1.0;
